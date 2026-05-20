@@ -1,0 +1,26 @@
+product_id,name,category,abc_class,unit,base_unit_price,daily_usage_rate,safety_stock,default_lead_time_days,reorder_point,stock_at_sim_start
+P01,Resistor 1K Ohm,Electronics,C,unit,0.05,10,70,5,120,260
+P02,Capacitor 10uF,Electronics,C,unit,0.15,8,60,5,100,500
+P03,Diode 1N4001,Electronics,B,unit,0.1,15,75,5,150,395
+P04,Transformer 12V,Electronics,B,unit,8.0,2,10,7,24,80
+P05,Microcontroller ATmega328,Electronics,A,unit,35.0,3,20,7,41,95
+P06,Temperature Sensor DS18B20,Electronics,B,unit,3.0,5,25,7,60,235
+P07,Connector 8-pin,Electronics,C,unit,0.4,20,100,6,220,800
+P08,Circuit Board A,Electronics,A,unit,25.0,4,20,7,48,180
+P09,Bolt M5x20,Fasteners,C,unit,0.08,25,150,5,275,1000
+P10,Screw M3x10,Fasteners,C,unit,0.05,30,200,5,350,900
+P11,Hex Nut M5,Fasteners,C,unit,0.04,25,180,5,305,900
+P12,Washer M5,Fasteners,C,unit,0.02,35,250,5,425,1200
+P13,Rivet 4mm,Fasteners,B,unit,0.06,18,100,6,208,600
+P14,Hinge 50mm,Fasteners,B,unit,1.5,4,20,6,44,120
+P15,Bearing 6205,Mechanical,A,unit,250.0,2,10,7,24,82
+P16,Spur Gear 20T,Mechanical,B,unit,12.0,3,15,7,36,120
+P17,Shaft 10mm,Mechanical,B,unit,8.0,2,10,7,24,80
+P18,Spring Compression 50mm,Mechanical,C,unit,0.8,10,50,5,100,300
+P19,Aluminum Frame 200mm,Mechanical,B,unit,15.0,2,10,7,24,80
+P20,Motor 12V DC,Components,A,unit,35.0,2,10,7,24,94
+P21,Relay 5V,Components,B,unit,3.5,4,20,6,44,140
+P22,Toggle Switch,Components,C,unit,1.2,6,30,6,66,200
+P23,Battery 9V,Components,B,unit,2.5,5,25,6,55,175
+P24,Aluminum Stock 6061,Materials,B,lb,4.5,12,60,7,144,400
+P25,Copper Wire 14AWG,Materials,B,ft,0.85,20,100,7,240,680

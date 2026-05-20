@@ -1,0 +1,115 @@
+po_id,supplier_id,product_id,placed_date,expected_delivery_date,quantity,unit_price,total_amount,status,phase,notes
+PO-0001,S13,P01,2026-01-19,2026-01-20,300,0.0655,19.65,received,historical,auto-generated baseline reorder
+PO-0002,S10,P01,2026-02-18,2026-02-24,300,0.0499,14.97,received,historical,auto-generated baseline reorder
+PO-0003,S11,P02,2026-01-20,2026-01-21,300,0.1315,39.45,received,historical,auto-generated baseline reorder
+PO-0004,S02,P02,2026-02-27,2026-02-28,250,0.198,49.5,received,historical,auto-generated baseline reorder
+PO-0005,S10,P03,2026-01-15,2026-01-19,450,0.0958,43.11,received,historical,auto-generated baseline reorder
+PO-0006,S13,P03,2026-02-14,2026-02-16,450,0.1313,59.09,received,historical,auto-generated baseline reorder
+PO-0007,S15,P04,2026-01-17,2026-01-25,50,7.8474,392.37,received,historical,auto-generated baseline reorder
+PO-0008,S12,P04,2026-02-11,2026-03-01,300,7.1222,2136.66,received,historical,auto-generated baseline reorder
+PO-0009,S07,P05,2026-01-21,2026-02-06,200,30.0131,6002.62,received,historical,auto-generated baseline reorder
+PO-0010,S12,P06,2026-01-17,2026-02-02,300,2.643,792.9,received,historical,auto-generated baseline reorder
+PO-0011,S07,P07,2026-01-16,2026-02-01,1000,0.325,325.0,received,historical,auto-generated baseline reorder
+PO-0012,S05,P08,2026-01-17,2026-01-25,125,26.1797,3272.46,received,historical,auto-generated baseline reorder
+PO-0013,S07,P08,2026-02-18,2026-03-07,200,22.1115,4422.3,received,historical,auto-generated baseline reorder
+PO-0014,S06,P09,2026-01-17,2026-01-21,800,0.0705,56.4,received,historical,auto-generated baseline reorder
+PO-0015,S14,P09,2026-02-18,2026-02-25,800,0.0795,63.6,received,historical,auto-generated baseline reorder
+PO-0016,S15,P10,2026-01-19,2026-01-27,900,0.0506,45.54,received,historical,auto-generated baseline reorder
+PO-0017,S07,P10,2026-02-18,2026-03-07,1000,0.0416,41.6,received,historical,auto-generated baseline reorder
+PO-0018,S07,P11,2026-01-20,2026-02-05,1000,0.033,33.0,received,historical,auto-generated baseline reorder
+PO-0019,S05,P12,2026-01-20,2026-01-28,1000,0.0202,20.2,received,historical,auto-generated baseline reorder
+PO-0020,S14,P12,2026-02-17,2026-02-24,1000,0.0192,19.2,received,historical,auto-generated baseline reorder
+PO-0021,S14,P13,2026-01-18,2026-01-23,500,0.0581,29.05,received,historical,auto-generated baseline reorder
+PO-0022,S10,P13,2026-02-14,2026-02-19,500,0.0584,29.2,received,historical,auto-generated baseline reorder
+PO-0023,S03,P14,2026-01-16,2026-01-28,250,1.3277,331.93,received,historical,auto-generated baseline reorder
+PO-0024,S11,P15,2026-01-17,2026-01-18,60,215.4137,12924.82,received,historical,auto-generated baseline reorder
+PO-0025,S03,P15,2026-02-16,2026-02-27,100,220.4978,22049.78,received,historical,auto-generated baseline reorder
+PO-0026,S15,P16,2026-01-17,2026-01-26,100,12.2108,1221.08,received,historical,auto-generated baseline reorder
+PO-0027,S10,P16,2026-02-20,2026-02-24,100,12.5148,1251.48,received,historical,auto-generated baseline reorder
+PO-0028,S10,P17,2026-01-17,2026-01-23,50,7.6075,380.38,received,historical,auto-generated baseline reorder
+PO-0029,S09,P17,2026-02-11,2026-02-14,50,8.3659,418.3,received,historical,auto-generated baseline reorder
+PO-0030,S03,P18,2026-01-15,2026-01-26,500,0.6772,338.6,received,historical,auto-generated baseline reorder
+PO-0031,S14,P19,2026-01-17,2026-01-23,50,15.6733,783.66,received,historical,auto-generated baseline reorder
+PO-0032,S15,P19,2026-02-11,2026-02-20,50,14.6757,733.79,received,historical,auto-generated baseline reorder
+PO-0033,S07,P20,2026-01-17,2026-02-03,200,28.5553,5711.06,received,historical,auto-generated baseline reorder
+PO-0034,S02,P21,2026-01-16,2026-01-19,125,4.9313,616.41,received,historical,auto-generated baseline reorder
+PO-0035,S13,P21,2026-02-17,2026-02-18,125,4.5432,567.9,received,historical,auto-generated baseline reorder
+PO-0036,S10,P22,2026-01-16,2026-01-21,175,1.2455,217.96,received,historical,auto-generated baseline reorder
+PO-0037,S02,P22,2026-02-14,2026-02-17,175,1.5506,271.36,received,historical,auto-generated baseline reorder
+PO-0038,S11,P23,2026-01-16,2026-01-17,150,2.1101,316.51,received,historical,auto-generated baseline reorder
+PO-0039,S09,P23,2026-02-15,2026-02-18,150,2.3893,358.39,received,historical,auto-generated baseline reorder
+PO-0040,S07,P24,2026-01-17,2026-02-03,500,3.7951,1897.55,received,historical,auto-generated baseline reorder
+PO-0041,S11,P25,2026-01-17,2026-01-18,600,0.7513,450.78,received,historical,auto-generated baseline reorder
+PO-0042,S07,P25,2026-02-16,2026-03-04,1000,0.7198,719.8,received,historical,auto-generated baseline reorder
+PO-0043,S01,P10,2026-03-09,2026-03-16,500,0.0511,25.55,received,simulation,scenario 3.1: late delivery test
+PO-0044,S08,P02,2026-03-11,2026-03-20,100,0.144,14.4,received,simulation,scenario 3.2: wrong quantity test
+PO-0045,S13,P01,2026-03-15,2026-03-16,300,0.0655,19.65,received,simulation,scenario 1.1: standard reorder
+PO-0046,S05,P03,2026-03-18,2026-03-28,450,0.1025,46.12,received,simulation,auto reorder
+PO-0047,S04,P05,2026-03-19,2026-03-21,100,35.0333,3503.33,received,simulation,scenario 5.1: budget constraint → 2nd best supplier within budget
+PO-0048,S01,P14,2026-03-20,2026-03-25,125,1.5388,192.35,received,simulation,auto reorder
+PO-0049,S11,P18,2026-03-21,2026-03-22,300,0.6841,205.23,received,simulation,auto reorder
+PO-0050,S13,P03,2026-03-23,2026-03-25,100,0.1313,13.13,received,simulation,scenario 2.1: emergency reorder after demand spike (200u) → fastest supplier
+PO-0051,S11,P13,2026-03-23,2026-03-24,500,0.0527,26.35,received,simulation,auto reorder
+PO-0052,S10,P24,2026-03-23,2026-03-29,350,4.6502,1627.57,received,simulation,auto reorder
+PO-0053,S05,P12,2026-03-24,2026-04-01,1000,0.0202,20.2,received,simulation,auto reorder
+PO-0054,S02,P22,2026-03-24,2026-03-27,175,1.5506,271.36,received,simulation,auto reorder
+PO-0055,S02,P11,2026-03-25,2026-03-27,800,0.0561,44.88,received,simulation,auto reorder
+PO-0056,S15,P21,2026-03-25,2026-04-01,125,3.3577,419.71,received,simulation,auto reorder
+PO-0057,S04,P23,2026-03-25,2026-03-27,150,2.5902,388.53,received,simulation,auto reorder
+PO-0058,S07,P12,2026-03-29,2026-04-16,1000,0.0174,17.4,received,simulation,scenario 4.3: partial delivery test
+PO-0059,S15,P04,2026-03-29,2026-04-06,50,7.8474,392.37,received,simulation,auto reorder
+PO-0060,S10,P16,2026-03-29,2026-04-02,100,12.5148,1251.48,received,simulation,auto reorder
+PO-0061,S10,P17,2026-03-29,2026-04-04,50,7.6075,380.38,received,simulation,auto reorder
+PO-0062,S15,P19,2026-03-29,2026-04-07,50,14.6757,733.79,received,simulation,auto reorder
+PO-0063,S13,P07,2026-03-30,2026-04-01,600,0.532,319.2,received,simulation,auto reorder
+PO-0064,S02,P09,2026-03-30,2026-04-01,800,0.1035,82.8,received,simulation,scenario 1.2: concurrent reorder (multi-product)
+PO-0065,S15,P15,2026-03-30,2026-04-07,50,249.1247,12456.23,received,simulation,scenario 1.2: concurrent reorder (multi-product)
+PO-0066,S12,P07,2026-04-05,2026-04-21,1000,0.353,353.0,cancelled,simulation,scenario 3.4 setup: open PO with S12 GlobalTrade | cancelled: S12 bankrupt (scenario 3.4)
+PO-0067,S04,P06,2026-04-05,2026-04-07,150,3.0767,461.51,received,simulation,scenario 5.2: weighted scoring → balanced supplier
+PO-0068,S02,P20,2026-04-05,2026-04-08,50,48.0541,2402.7,received,simulation,scenario 2.3: motor shortage → escalate to premium (HITL)
+PO-0069,S07,P13,2026-04-10,2026-04-26,500,0.0514,25.7,rejected,simulation,scenario 3.3: quality test
+PO-0070,S03,P14,2026-04-12,2026-04-24,60,1.3277,79.66,received,simulation,"scenario 5.3: HUMAN OVERRIDE — Betsy recommended S02, Jenny chose S03"
+PO-0071,S04,P01,2026-04-14,2026-04-17,300,0.0503,15.09,received,simulation,auto reorder
+PO-0072,S13,P08,2026-04-15,2026-04-17,50,33.4114,1670.57,received,simulation,scenario 2.2: STOCKOUT detected on P08 → emergency reorder; safety stock adjusted upward post-incident
+PO-0073,S04,P08,2026-04-17,2026-04-20,125,25.7302,3216.28,received,simulation,auto reorder
+PO-0074,S08,P03,2026-04-20,2026-04-27,450,0.105,47.25,received,simulation,auto reorder
+PO-0075,S03,P13,2026-04-20,2026-04-30,500,0.0498,24.9,received,simulation,auto reorder
+PO-0076,S02,P18,2026-04-20,2026-04-21,300,1.1161,334.83,received,simulation,auto reorder
+PO-0077,S05,P24,2026-04-21,2026-05-01,350,4.5719,1600.17,received,simulation,auto reorder
+PO-0078,S13,P05,2026-04-22,2026-04-23,100,46.2039,4620.39,received,simulation,auto reorder
+PO-0079,S10,P22,2026-04-22,2026-04-27,175,1.2455,217.96,received,simulation,auto reorder
+PO-0080,S02,P04,2026-04-23,2026-04-25,50,10.3704,518.52,received,simulation,auto reorder
+PO-0081,S09,P17,2026-04-23,2026-04-26,50,8.3659,418.3,received,simulation,auto reorder
+PO-0082,S14,P19,2026-04-23,2026-04-29,50,15.6733,783.66,received,simulation,auto reorder
+PO-0083,S02,P15,2026-04-24,2026-04-25,50,353.8762,17693.81,received,simulation,auto reorder
+PO-0084,S15,P23,2026-04-24,2026-05-01,150,2.5766,386.49,received,simulation,auto reorder
+PO-0085,S11,P11,2026-04-26,2026-04-27,800,0.034,27.2,received,simulation,auto reorder
+PO-0086,S13,P21,2026-04-26,2026-04-27,125,4.5432,567.9,received,simulation,auto reorder
+PO-0087,S15,P07,2026-04-29,2026-05-08,600,0.3877,232.62,received,simulation,auto reorder
+PO-0088,S11,P20,2026-04-30,2026-05-02,60,30.9517,1857.1,received,simulation,auto reorder
+PO-0089,S05,P09,2026-05-01,2026-05-09,800,0.0801,64.08,received,simulation,auto reorder
+PO-0090,S07,P02,2026-05-02,2026-05-18,1000,0.1227,122.7,received,simulation,auto reorder
+PO-0091,S14,P16,2026-05-02,2026-05-09,100,12.2242,1222.42,received,simulation,auto reorder
+PO-0092,S07,P06,2026-05-05,2026-05-23,500,2.4406,1220.3,received,simulation,auto reorder
+PO-0093,S10,P14,2026-05-06,2026-05-12,125,1.4446,180.58,received,simulation,auto reorder
+PO-0094,S15,P10,2026-05-09,2026-05-17,900,0.0506,45.54,received,simulation,auto reorder
+PO-0095,S02,P25,2026-05-12,2026-05-15,600,1.1337,680.22,received,simulation,auto reorder
+PO-0096,S05,P01,2026-05-14,2026-05-22,300,0.0509,15.27,received,simulation,auto reorder
+PO-0097,S08,P04,2026-05-18,2026-05-25,50,8.3752,418.76,received,simulation,auto reorder
+PO-0098,S15,P08,2026-05-18,2026-05-27,125,26.1009,3262.61,received,simulation,auto reorder
+PO-0099,S14,P13,2026-05-18,2026-05-23,500,0.0581,29.05,received,simulation,auto reorder
+PO-0100,S05,P17,2026-05-18,2026-05-27,50,7.6895,384.47,received,simulation,auto reorder
+PO-0101,S11,P19,2026-05-18,2026-05-20,150,12.2084,1831.26,received,simulation,auto reorder
+PO-0102,S09,P15,2026-05-19,2026-05-21,50,244.1301,12206.5,received,simulation,auto reorder
+PO-0103,S04,P03,2026-05-20,2026-05-23,450,0.104,46.8,received,simulation,auto reorder
+PO-0104,S14,P12,2026-05-20,2026-05-27,1000,0.0192,19.2,received,simulation,auto reorder
+PO-0105,S10,P18,2026-05-20,2026-05-24,300,0.8399,251.97,received,simulation,auto reorder
+PO-0106,S15,P24,2026-05-20,2026-05-27,350,4.286,1500.1,received,simulation,auto reorder
+PO-0107,S04,P22,2026-05-21,2026-05-25,175,1.2035,210.61,received,simulation,auto reorder
+PO-0108,S10,P23,2026-05-24,2026-05-29,150,2.4462,366.93,received,simulation,auto reorder
+PO-0109,S07,P05,2026-05-25,2026-06-10,200,30.0131,6002.62,open,simulation,auto reorder
+PO-0110,S04,P05,2026-05-26,2026-05-28,100,35.0333,3503.33,received,simulation,auto reorder
+PO-0111,S09,P21,2026-05-27,2026-05-30,125,3.5277,440.96,received,simulation,auto reorder
+PO-0112,S14,P11,2026-05-28,2026-06-04,800,0.0404,32.32,received,simulation,auto reorder
+PO-0113,S04,P07,2026-05-29,2026-05-31,600,0.3861,231.66,received,simulation,auto reorder
+PO-0114,S13,P20,2026-05-30,2026-05-31,50,46.4522,2322.61,received,simulation,auto reorder

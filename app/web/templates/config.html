@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Config{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-1">Operator config</h1>
+<p class="text-slate-500 text-sm mb-6">Jenny's dials (config version {{ version }}). Saving creates a new version; old versions are kept for audit.</p>
+
+<form method="post" action="/config" class="grid grid-cols-2 gap-6 max-w-3xl">
+  <div class="bg-white rounded-xl border border-slate-200 p-5 col-span-2">
+    <h2 class="font-semibold mb-3">Spending caps</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <label class="text-sm">Per-PO cap ($)<input name="per_po_cap" type="number" step="0.01" value="{{ cfg.per_po_cap }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5"></label>
+      <label class="text-sm">Monthly cap ($)<input name="monthly_cap" type="number" step="0.01" value="{{ cfg.monthly_cap }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5"></label>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="font-semibold mb-3">Scoring weights</h2>
+    <label class="text-sm block mb-2">On-time delivery<input name="w_otd" type="number" step="0.01" value="{{ cfg.weights.otd }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5"></label>
+    <label class="text-sm block mb-2">Perfect order rate<input name="w_por" type="number" step="0.01" value="{{ cfg.weights.por }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5"></label>
+    <label class="text-sm block mb-2">Lead-time variance<input name="w_lead" type="number" step="0.01" value="{{ cfg.weights.lead_time_var }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5"></label>
+    <label class="text-sm block">Price stability<input name="w_price" type="number" step="0.01" value="{{ cfg.weights.price_stability }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5"></label>
+    <p class="text-xs text-slate-400 mt-2">Weights should sum to 1.0.</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="font-semibold mb-3">Blocked suppliers</h2>
+    <label class="text-sm block">Comma-separated supplier IDs
+      <input name="blocked_suppliers" value="{{ cfg.blocked_suppliers|join(', ') }}" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-1.5" placeholder="e.g. S07, S12">
+    </label>
+    <p class="text-xs text-slate-400 mt-3">Available: {% for s in suppliers %}{{ s.supplier_id }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  </div>
+
+  <div class="col-span-2">
+    <button class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700">Save config</button>
+  </div>
+</form>
+{% endblock %}

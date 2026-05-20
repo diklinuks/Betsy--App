@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Report{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-1">Success-criteria report</h1>
+<p class="text-slate-500 text-sm mb-6">Measured against the Project Description targets.</p>
+
+<div class="grid grid-cols-3 gap-4 mb-8">
+  {% for key, c in rep.success_criteria.items() %}
+  <div class="bg-white rounded-xl border {{ 'border-emerald-300' if c.pass else 'border-rose-300' }} p-5">
+    <p class="text-sm text-slate-500">{{ key.replace('_',' ') }}</p>
+    <p class="text-2xl font-semibold mt-1">{{ c.actual }} <span class="text-sm text-slate-400">/ target {{ c.target }}</span></p>
+    <p class="mt-2 text-sm font-medium {{ 'text-emerald-700' if c.pass else 'text-rose-700' }}">{{ '✓ pass' if c.pass else '✗ not met' }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-cols-2 gap-6">
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="font-semibold mb-3">Operations summary</h2>
+    <ul class="text-sm space-y-1 text-slate-700">
+      <li>Decisions made: <b>{{ rep.decisions.total }}</b> ({{ rep.decisions.pos_generated }} POs, {{ rep.decisions.escalated }} escalated)</li>
+      <li>Approvals: <b>{{ rep.approvals.approved }}</b> approved / {{ rep.approvals.rejected }} rejected ({{ (rep.approvals.rate*100)|round(1) }}%)</li>
+      <li>Invoice errors caught: <b>{{ rep.invoice_errors_caught }}</b></li>
+      <li>Stockouts: {{ rep.stockouts.occurred }} occurred, <b>{{ rep.stockouts.prevented }}</b> prevented</li>
+    </ul>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="font-semibold mb-3">Scenario coverage</h2>
+    <p class="text-sm mb-2">Fired {{ rep.scenario_coverage.fired|length }} / {{ rep.scenario_coverage.detail|length }} injected scenarios.</p>
+    <div class="flex flex-wrap gap-1.5">
+      {% for sid, ok in rep.scenario_coverage.detail.items() %}
+      <span class="px-2 py-0.5 rounded text-xs {{ 'bg-emerald-100 text-emerald-700' if ok else 'bg-slate-100 text-slate-400' }}">{{ sid }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 p-5 mt-6">
+  <h2 class="font-semibold mb-3">Final supplier scores</h2>
+  <div class="grid grid-cols-3 gap-2 text-sm">
+    {% for sid, sc in rep.final_supplier_scores.items() %}
+    <div class="flex justify-between border-b border-slate-100 py-1"><span>{{ sid }}</span><b>{{ sc }}</b></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

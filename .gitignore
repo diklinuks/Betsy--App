@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Env / secrets
+.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Postgres docker volume (if mounted locally)
+pgdata/
+
+# Generated artifacts
+*.log
+reports/*.json

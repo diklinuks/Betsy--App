@@ -1,0 +1,16 @@
+supplier_id,name,category_focus,price_tier,base_lead_time_days,quality_score,default_moq,payment_terms,unavailable_from_date,notes
+S01,FastCheap Inc,Electronics;Fasteners,$$$,6,0.82,100,Net 30,,"Cheap but slow, occasional quality issues"
+S02,PremiumReliable,Electronics;Fasteners;Mechanical;Components;Materials,$$$$,2,0.98,20,Net 45,,"Expensive but very reliable, low MOQ"
+S03,BulkMaster,Fasteners;Mechanical,$$,11,0.75,500,Net 60,,"Cheapest, but high MOQ and slow"
+S04,QuickTech,Electronics;Components,$$$,3,0.9,50,Net 30,,"Fast delivery, good quality, balanced"
+S05,EcoSupply,Electronics;Fasteners;Mechanical;Components;Materials,$$$,9,0.88,30,Net 30,,"Sustainable, reliable, medium lead time"
+S06,LocalFasteners,Fasteners,$$,4,0.85,200,Net 15,,Good for fasteners only
+S07,MegaCorp,Electronics;Fasteners;Mechanical;Components;Materials,$$,17,0.7,1000,Net 60,,"Very cheap, very slow, quality unreliable"
+S08,TechHub Europe,Electronics,$$$,8,0.92,25,Net 30,,"Good for electronics, late ~20% of the time"
+S09,JustInTime Parts,Components;Mechanical,$$$,2,0.89,10,Net 15,,"Expensive but fastest, very low MOQ"
+S10,ReliableStandard,Electronics;Fasteners;Mechanical;Components;Materials,$$$,5,0.87,40,Net 30,,"Consistent, middle-ground option"
+S11,StorageWarehouse,Electronics;Fasteners;Mechanical;Components;Materials,$$,1,0.8,300,Net 15,,"Local, very fast, but lower quality"
+S12,GlobalTrade,Electronics;Fasteners,$$,17,0.78,600,Net 60,2026-04-20,Bankrupt on sim day 50 (scenario 3.4)
+S13,LuxeParts,Electronics;Components,$$$$,1,0.96,5,Net 30,,"Premium, fastest, extremely low MOQ"
+S14,MidLevel Supply,Fasteners;Mechanical,$$$,6,0.86,60,Net 30,,Balanced across all criteria
+S15,Backup Specialists,Electronics;Fasteners;Mechanical;Components;Materials,$$$,8,0.84,50,Net 30,,"Reliable backup supplier, no discounts"

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Decisions{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-1">Decision audit log</h1>
+<p class="text-slate-500 text-sm mb-6">Append-only. Each row: the trigger, candidates considered, the choice, the reasoning, and how it was authorised.</p>
+
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100 text-slate-600 text-left">
+      <tr>
+        <th class="px-3 py-2">Day</th><th class="px-3 py-2">Trigger</th>
+        <th class="px-3 py-2">Product</th><th class="px-3 py-2">Chosen</th>
+        <th class="px-3 py-2">Action</th><th class="px-3 py-2">By</th>
+        <th class="px-3 py-2">Reasoning</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in decisions %}
+      <tr class="border-t border-slate-100 align-top">
+        <td class="px-3 py-2 whitespace-nowrap">{{ d.sim_day }}</td>
+        <td class="px-3 py-2">{{ d.trigger_type }}</td>
+        <td class="px-3 py-2">{{ d.product_id or "—" }}</td>
+        <td class="px-3 py-2 whitespace-nowrap">{{ d.chosen_supplier or "—" }}{% if d.chosen_quantity %} ×{{ d.chosen_quantity }}{% endif %}</td>
+        <td class="px-3 py-2">
+          <span class="px-2 py-0.5 rounded text-xs {{ 'bg-emerald-100 text-emerald-700' if d.action=='po_generated' else ('bg-rose-100 text-rose-700' if d.action=='rejected' else 'bg-slate-100 text-slate-600') }}">{{ d.action }}</span>
+          {% if d.urgent %}<span class="ml-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">urgent</span>{% endif %}
+        </td>
+        <td class="px-3 py-2 text-xs text-slate-500">{{ d.attribution }}</td>
+        <td class="px-3 py-2 text-slate-600 max-w-md">{{ d.reasoning }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
