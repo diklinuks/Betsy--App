@@ -64,6 +64,7 @@ def _load_suppliers(s) -> None:
             bank_details=f"IBAN NL{abs(hash(r['supplier_id'])) % 10**16:016d}",
             contact=f"orders@{r['name'].lower().replace(' ', '')}.example",
         ))
+    s.flush()
 
 
 def _load_products(s) -> None:
@@ -79,6 +80,7 @@ def _load_products(s) -> None:
             stock_at_sim_start=int(r["stock_at_sim_start"]),
             current_stock=int(r["stock_at_sim_start"]),
         ))
+    s.flush()
 
 
 def _load_supplier_products(s) -> None:
@@ -88,51 +90,6 @@ def _load_supplier_products(s) -> None:
             unit_price=float(r["unit_price"]),
             supplier_lead_time_days=int(r["supplier_lead_time_days"]),
             supplier_moq=int(r["supplier_moq"]),
-        ))
-
-
-    """POs/deliveries/invoices with phase=historical only."""
-    for r in _read("purchase_orders.csv"):
-        if r["phase"] != "historical":
-            continue
-        placed = date.fromisoformat(r["placed_date"])
-        exp = date.fromisoformat(r["expected_delivery_date"])
-        s.add(PurchaseOrder(
-            po_id=r["po_id"], supplier_id=r["supplier_id"], product_id=r["product_id"],
-            placed_day=date_to_day(placed), placed_date=placed,
-            expected_delivery_day=date_to_day(exp), expected_delivery_date=exp,
-            quantity=int(r["quantity"]), unit_price=float(r["unit_price"]),
-            total_amount=float(r["total_amount"]), status=r["status"],
-            phase="historical", notes=r.get("notes", ""),
-        ))
-    for r in _read("delivery_records.csv"):
-        if r["phase"] != "historical":
-            continue
-        exp = date.fromisoformat(r["expected_delivery_date"])
-        act = date.fromisoformat(r["actual_delivery_date"])
-        s.add(Delivery(
-            delivery_id=r["delivery_id"], po_id=r["po_id"], supplier_id=r["supplier_id"],
-            product_id=r["product_id"],
-            expected_delivery_day=date_to_day(exp), expected_delivery_date=exp,
-            actual_delivery_day=date_to_day(act), actual_delivery_date=act,
-            quantity_ordered=int(r["quantity_ordered"]),
-            quantity_received=int(r["quantity_received"]),
-            on_time=_bool(r["on_time"]), quality_pass=_bool(r["quality_pass"]),
-            defects_count=int(r["defects_count"]), phase="historical",
-            notes=r.get("notes", ""),
-        ))
-    for r in _read("invoices.csv"):
-        if r["phase"] != "historical":
-            continue
-        inv = date.fromisoformat(r["invoice_date"])
-        s.add(Invoice(
-            invoice_id=r["invoice_id"], invoice_number=r["invoice_number"],
-            po_id=r["po_id"], supplier_id=r["supplier_id"],
-            invoice_day=date_to_day(inv), invoice_date=inv,
-            amount=float(r["amount"]), po_amount=float(r["po_amount"]),
-            matches_po=_bool(r["matches_po"]), is_duplicate=_bool(r["is_duplicate"]),
-            payment_status=r["payment_status"], anomaly_flag=r.get("anomaly_flag", ""),
-            phase="historical",
         ))
     s.flush()
 
@@ -154,7 +111,7 @@ def _load_historical_transactions(s) -> None:
             phase="historical", notes=r.get("notes", ""),
         ))
     
-    s.flush()  # <-- ADDED: Commits POs to the DB so their IDs exist
+    s.flush()  
 
     # 2. Load and flush Deliveries SECOND
     for r in _read("delivery_records.csv"):
@@ -174,7 +131,7 @@ def _load_historical_transactions(s) -> None:
             notes=r.get("notes", ""),
         ))
         
-    s.flush()  # <-- ADDED: Commits Deliveries so they exist for Invoices
+    s.flush()  
 
     # 3. Load and flush Invoices LAST
     for r in _read("invoices.csv"):
@@ -192,7 +149,8 @@ def _load_historical_transactions(s) -> None:
         ))
         
     s.flush()
-    
+
+
 def _seed_kpi_history(s) -> None:
     """Build one KPI snapshot per historical delivery so scores reflect track record."""
     from sqlalchemy import select

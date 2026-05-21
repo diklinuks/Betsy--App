@@ -1,8 +1,3 @@
-"""Jenny's dashboard (FastAPI + Jinja + HTMX).
-
-Run:  uvicorn app.web.main:app --reload --port 8000
-Then open http://localhost:8000
-"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,9 +42,11 @@ def _pending(s) -> list[PendingApproval]:
 def dashboard(request: Request):
     with get_session() as s:
         st = _sim_state(s)
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request, "state": st, "running": runner.is_running(),
-        })
+        return templates.TemplateResponse(
+            request=request, 
+            name="dashboard.html", 
+            context={"request": request, "state": st, "running": runner.is_running()}
+        )
 
 
 @app.get("/fragment/live", response_class=HTMLResponse)
@@ -58,17 +55,25 @@ def live(request: Request):
         st = _sim_state(s)
         pending = _pending(s)
         sd = max(0, st.current_day - 60)
-        return templates.TemplateResponse("partials/live.html", {
-            "request": request, "state": st, "pending": pending,
-            "running": runner.is_running(), "sim_day": sd,
-        })
+        return templates.TemplateResponse(
+            request=request, 
+            name="partials/live.html", 
+            context={
+                "request": request, "state": st, "pending": pending,
+                "running": runner.is_running(), "sim_day": sd,
+            }
+        )
 
 
 @app.get("/decisions", response_class=HTMLResponse)
 def decisions(request: Request):
     with get_session() as s:
         rows = s.execute(select(Decision).order_by(Decision.created_at.desc()).limit(80)).scalars().all()
-        return templates.TemplateResponse("decisions.html", {"request": request, "decisions": rows})
+        return templates.TemplateResponse(
+            request=request, 
+            name="decisions.html", 
+            context={"request": request, "decisions": rows}
+        )
 
 
 @app.get("/config", response_class=HTMLResponse)
@@ -76,15 +81,22 @@ def config_page(request: Request):
     with get_session() as s:
         ver, cfg = current_config(s)
         suppliers = s.execute(select(Supplier).order_by(Supplier.supplier_id)).scalars().all()
-        return templates.TemplateResponse("config.html", {
-            "request": request, "version": ver, "cfg": cfg, "suppliers": suppliers})
+        return templates.TemplateResponse(
+            request=request, 
+            name="config.html", 
+            context={"request": request, "version": ver, "cfg": cfg, "suppliers": suppliers}
+        )
 
 
 @app.get("/report", response_class=HTMLResponse)
 def report_page(request: Request):
     from app.eval.report import build_report
     rep = build_report()
-    return templates.TemplateResponse("report.html", {"request": request, "rep": rep})
+    return templates.TemplateResponse(
+        request=request, 
+        name="report.html", 
+        context={"request": request, "rep": rep}
+    )
 
 
 # ----------------------------- actions ----------------------------- #
