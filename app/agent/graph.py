@@ -142,17 +142,31 @@ def _heuristic_proposal(ctx: dict) -> dict:
                 + wp * (1 - n(c["unit_price"], pmin, pmax))
                 + wl * (1 - n(c["lead_time_days"], lmin, lmax)))
 
-    chosen = max(cands, key=value)
-    why = ("urgent — weighted toward fastest delivery" if urgent
-           else "balanced price / lead time / reliability")
+    ranked = sorted(cands, key=value, reverse=True)
+    chosen = ranked[0]
+    runner = ranked[1] if len(ranked) > 1 else None
     qty = max(chosen["moq"], p["daily_usage"] * 30)
-    alts = [c["supplier_id"] for c in cands if c["supplier_id"] != chosen["supplier_id"]][:3]
+    alts = [c["supplier_id"] for c in ranked[1:4]]
+    situation = "urgent (stock at or below safety stock)" if urgent else "routine reorder"
+    reasoning = (
+        f"{p['product_id']} ({p['name']}) hit its reorder point — stock {p['current_stock']} "
+        f"vs reorder point {p['reorder_point']}; {situation}. Compared {len(cands)} active "
+        f"suppliers on price, lead time and reliability. Chose {chosen['supplier_id']} "
+        f"({chosen['name']}): ${chosen['unit_price']}/unit, {chosen['lead_time_days']}-day lead, "
+        f"reliability {chosen['current_score']}; ordering {int(qty)} units (~30 days of usage)."
+    )
+    if runner:
+        reasoning += (
+            f" Preferred over {runner['supplier_id']} ({runner['name']}: "
+            f"${runner['unit_price']}/unit, {runner['lead_time_days']}-day lead, "
+            f"reliability {runner['current_score']}) because "
+            + ("speed matters most here and the price gap is not worth a slower delivery that risks a stockout."
+               if urgent else
+               "it gives the better overall balance of price, lead time and reliability for a routine order.")
+        )
     return {
         "chosen_supplier_id": chosen["supplier_id"], "quantity": int(qty),
-        "reasoning": f"Chose {chosen['supplier_id']} — {why} "
-                     f"(${chosen['unit_price']}/unit, lead {chosen['lead_time_days']}d, "
-                     f"reliability {chosen['current_score']}).",
-        "alternatives": alts, "confidence": 0.6, "escalate": False,
+        "reasoning": reasoning, "alternatives": alts, "confidence": 0.6, "escalate": False,
     }
 
 

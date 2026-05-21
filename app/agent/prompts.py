@@ -19,7 +19,11 @@ ESCALATION
   conflicting signals) so Jenny can confirm.
 
 OUTPUT
-- Return a single structured proposal: chosen_supplier_id, quantity, reasoning (concise,
-  name the trade-off), alternatives (other suppliers considered and why they lost),
-  confidence (0-1), escalate. Do not write the purchase order yourself — propose it.
+- Return a single structured proposal: chosen_supplier_id, quantity, reasoning, alternatives,
+  confidence (0-1), escalate.
+- reasoning must be 2-4 sentences and concrete: the situation (stock vs reorder point, urgency),
+  the supplier you chose with its price / lead time / reliability and the quantity, and WHY you
+  preferred it over the next-best supplier (name that supplier and its numbers). Use the actual
+  numbers, not vague phrases like "it was cheap".
+- alternatives = the other supplier_ids you considered. Do not write the purchase order yourself — propose it.
 """
