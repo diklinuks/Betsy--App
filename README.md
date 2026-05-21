@@ -116,8 +116,19 @@ data/       synthetic dataset + generator
 tests/
 ```
 
+## Free-tier / rate limits (Gemini)
+
+The free tier caps requests (~15/min). To avoid `429 RESOURCE_EXHAUSTED`:
+- **`BETSY_AGENT_MODE=single`** (default) — one structured LLM call per reorder. Far
+  fewer requests; a full 90-day run fits the free tier. Set `BETSY_AGENT_MODE=react`
+  for the full ReAct tool-calling loop over MCP (more calls — best for short demos).
+- Calls are **throttled** to `BETSY_LLM_RPS` (default 0.2 ≈ 12/min) and **retry** on 429
+  (`BETSY_LLM_MAX_RETRIES`). Lower the RPS if you still see 429s — the sim just runs slower.
+- **Reflection** (an LLM call) fires only on *poor* outcomes (late/defect/short) + rejections,
+  not on every delivery, to conserve quota.
+
 ## Notes & known limits
 
-- Without `GEMINI_API_KEY`, decisions use a documented heuristic; set the key for real LLM reasoning.
-- The MCP server spawns per decision in v1 (simple, a little slow); caching is a future optimisation.
+- Without `GEMINI_API_KEY`, decisions use a documented heuristic (weighs price/lead/score).
+- Pause/Resume/Stop the run from the dashboard; click any decision row for full reasoning.
 - The simulation is deterministic given the seed except for LLM choices.

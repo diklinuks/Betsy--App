@@ -42,6 +42,17 @@ SIM_DAYS = SIM_END_DAY - HISTORICAL_END_DAY  # 90
 #     setup gives trouble — same tools wired as in-process LangChain tools) ---
 TOOLS_TRANSPORT = os.getenv("BETSY_TOOLS_TRANSPORT", "mcp")
 
+# --- Agent mode ---
+#   "single" (default): ONE structured LLM call per reorder — free-tier friendly,
+#            far fewer requests, won't hit the daily/RPM quota on a full 90-day run.
+#   "react":  full ReAct tool-calling loop over the MCP tools (more calls; best for
+#            short demos / showing the LangGraph+MCP loop, but heavy on free tier).
+AGENT_MODE = os.getenv("BETSY_AGENT_MODE", "single")
+
+# --- LLM rate limiting (Gemini free tier ~15 req/min). Throttle to avoid 429s. ---
+LLM_RPS = float(os.getenv("BETSY_LLM_RPS", "0.2"))   # requests/sec (~12/min)
+LLM_MAX_RETRIES = int(os.getenv("BETSY_LLM_MAX_RETRIES", "6"))
+
 # --- Reasoning / budget guards ---
 MAX_REACT_STEPS = 8         # hard cap on tool-call cycles per decision
 REFLECTION_MAX_ITERS = 2    # high-stakes reflection iterations

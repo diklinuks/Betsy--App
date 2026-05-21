@@ -28,6 +28,7 @@ from app.util import sim_day as to_sim_day
 # ----------------------------- background control ----------------------------- #
 _thread: threading.Thread | None = None
 _stop = threading.Event()
+_pause = threading.Event()
 AUTO_APPROVE = False  # headless mode: resolve approvals automatically (no dashboard)
 ABC_ORDER = {"A": 0, "B": 1, "C": 2}
 
@@ -52,6 +53,30 @@ def start(reset_data: bool = False) -> bool:
 
 def stop() -> None:
     _stop.set()
+    _pause.clear()
+
+
+def pause() -> None:
+    _pause.set()
+
+
+def resume() -> None:
+    _pause.clear()
+
+
+def is_paused() -> bool:
+    return _pause.is_set()
+
+
+def _wait_if_paused(abs_day: int) -> None:
+    announced = False
+    while _pause.is_set() and not _stop.is_set():
+        if not announced:
+            _set_state("paused", abs_day, f"Paused by user at sim day {to_sim_day(abs_day)}.")
+            announced = True
+        time.sleep(0.5)
+    if announced and not _stop.is_set():
+        _set_state("running", abs_day, "Resumed.")
 
 
 def resolve_approval(decision_id: str, approved: bool, reason: str) -> None:
@@ -82,6 +107,10 @@ def _run() -> None:
     _set_state("running", HISTORICAL_END_DAY, "Simulation started.")
     try:
         for abs_day in range(HISTORICAL_END_DAY + 1, SIM_END_DAY + 1):
+            if _stop.is_set():
+                _set_state("idle", abs_day, "Stopped by user.")
+                return
+            _wait_if_paused(abs_day)
             if _stop.is_set():
                 _set_state("idle", abs_day, "Stopped by user.")
                 return
@@ -152,14 +181,24 @@ def _process_deliveries(s, world: SimWorld, abs_day: int) -> None:
 
 
 def _close_decision(s, po: PurchaseOrder, outcome: dict) -> None:
+    """Record the outcome on the decision. Reflection (an LLM call) fires only on a
+    POOR outcome — late, defective, or short — to stay inside the free-tier quota.
+    Good outcomes just record the result with no model call."""
     if not po.decision_id:
         return
     dec = s.get(Decision, po.decision_id)
-    if dec and dec.outcome is None:
-        reflect_on_outcome(s, dec, {
-            "on_time": outcome["on_time"], "quality_pass": outcome["quality_pass"],
-            "qty_received": outcome["qty_received"], "defects": outcome["defects"],
-        })
+    if not dec or dec.outcome is not None:
+        return
+    result = {
+        "on_time": outcome["on_time"], "quality_pass": outcome["quality_pass"],
+        "qty_received": outcome["qty_received"], "defects": outcome["defects"],
+    }
+    poor = (not outcome["on_time"]) or (not outcome["quality_pass"]) or outcome["defects"] > 0
+    if poor:
+        reflect_on_outcome(s, dec, result)   # writes + embeds a lesson (LLM)
+    else:
+        dec.outcome = result                 # record only; no model call
+        s.flush()
 
 
 # ----------------------------- inventory check / reorder ----------------------------- #

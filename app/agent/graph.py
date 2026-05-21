@@ -15,7 +15,9 @@ from app.agent.model import get_chat_model
 from app.agent.prompts import SYSTEM_PROMPT
 from app.agent.schemas import Proposal
 from app.agent.tools_lc import READ_TOOLS
-from app.config.settings import GEMINI_API_KEY, MAX_REACT_STEPS, TOOLS_TRANSPORT
+from app.config.settings import (
+    AGENT_MODE, GEMINI_API_KEY, MAX_REACT_STEPS, TOOLS_TRANSPORT,
+)
 
 _READ_TOOL_NAMES = {
     "inventory_read", "supplier_catalogue", "supplier_history",
@@ -85,6 +87,19 @@ async def _propose_async(ctx: dict) -> dict:
     return proposal.model_dump()
 
 
+def _propose_single(ctx: dict) -> dict:
+    """ONE structured LLM call (no tool loop) — free-tier friendly default.
+    Candidates are already in the prompt; the LLM weighs the trade-off and returns
+    a structured proposal directly."""
+    from app.agent.model import get_chat_model as _gcm  # local import keeps module light
+    structured = _gcm(temperature=0.1).with_structured_output(Proposal)
+    proposal: Proposal = structured.invoke([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": _format_user(ctx)},
+    ])
+    return proposal.model_dump()
+
+
 # --------------------------------------------------------------------------- #
 # Public sync API (called by the runner thread)
 # --------------------------------------------------------------------------- #
@@ -92,32 +107,51 @@ def propose_decision(ctx: dict) -> dict:
     if not GEMINI_API_KEY:
         return {**_heuristic_proposal(ctx), "_source": "heuristic (no GEMINI_API_KEY)"}
     try:
-        return {**asyncio.run(_propose_async(ctx)), "_source": TOOLS_TRANSPORT}
+        if AGENT_MODE == "react":
+            return {**asyncio.run(_propose_async(ctx)), "_source": f"llm-react/{TOOLS_TRANSPORT}"}
+        return {**_propose_single(ctx), "_source": "llm-single"}
     except Exception as e:  # never let a model/MCP error stop the sim
         return {**_heuristic_proposal(ctx), "_source": f"heuristic (fallback: {type(e).__name__})"}
 
 
 def _heuristic_proposal(ctx: dict) -> dict:
-    """Transparent rule-based choice used as a fallback / before a key is set."""
+    """Transparent rule-based choice used as a fallback / before a key is set.
+
+    Blends reliability score, price and lead time so it does not collapse onto a
+    single supplier (urgency shifts the weight toward lead time)."""
     cands = ctx["candidates"]
     p = ctx["product"]
     if not cands:
         return {"chosen_supplier_id": "", "quantity": 0,
-                "reasoning": "No active supplier available.", "alternatives": [],
+                "reasoning": "No active supplier available — escalating.", "alternatives": [],
                 "confidence": 0.0, "escalate": True}
-    if ctx.get("urgent"):
-        chosen = min(cands, key=lambda c: (c["lead_time_days"], -c["current_score"]))
-        why = "urgent: fastest supplier to avoid stockout"
-    else:
-        chosen = max(cands, key=lambda c: (c["current_score"], -c["unit_price"]))
-        why = "best reliability score within normal cost"
+
+    prices = [c["unit_price"] for c in cands]
+    leads = [c["lead_time_days"] for c in cands]
+    pmin, pmax = min(prices), max(prices)
+    lmin, lmax = min(leads), max(leads)
+
+    def n(v, lo, hi):
+        return 0.0 if hi == lo else (v - lo) / (hi - lo)
+
+    urgent = ctx.get("urgent")
+    ws, wp, wl = (0.30, 0.10, 0.60) if urgent else (0.50, 0.30, 0.20)
+
+    def value(c):  # higher is better; cheap + fast + reliable
+        return (ws * c["current_score"]
+                + wp * (1 - n(c["unit_price"], pmin, pmax))
+                + wl * (1 - n(c["lead_time_days"], lmin, lmax)))
+
+    chosen = max(cands, key=value)
+    why = ("urgent — weighted toward fastest delivery" if urgent
+           else "balanced price / lead time / reliability")
     qty = max(chosen["moq"], p["daily_usage"] * 30)
     alts = [c["supplier_id"] for c in cands if c["supplier_id"] != chosen["supplier_id"]][:3]
     return {
         "chosen_supplier_id": chosen["supplier_id"], "quantity": int(qty),
         "reasoning": f"Chose {chosen['supplier_id']} — {why} "
                      f"(${chosen['unit_price']}/unit, lead {chosen['lead_time_days']}d, "
-                     f"score {chosen['current_score']}).",
+                     f"reliability {chosen['current_score']}).",
         "alternatives": alts, "confidence": 0.6, "escalate": False,
     }
 

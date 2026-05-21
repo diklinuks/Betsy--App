@@ -76,6 +76,17 @@ def decisions(request: Request):
         )
 
 
+@app.get("/decision/{decision_id}", response_class=HTMLResponse)
+def decision_detail(request: Request, decision_id: str):
+    with get_session() as s:
+        d = s.get(Decision, decision_id)
+        return templates.TemplateResponse(
+            request=request,
+            name="decision_detail.html",
+            context={"request": request, "d": d},
+        )
+
+
 @app.get("/config", response_class=HTMLResponse)
 def config_page(request: Request):
     with get_session() as s:
@@ -115,6 +126,18 @@ def run_reset():
 @app.post("/stop")
 def stop():
     runner.stop()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/pause")
+def pause():
+    runner.pause()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/resume")
+def resume():
+    runner.resume()
     return RedirectResponse("/", status_code=303)
 
 
