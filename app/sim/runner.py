@@ -14,7 +14,7 @@ import uuid
 from sqlalchemy import select
 
 from app.agent.graph import propose_decision
-from app.config.settings import HISTORICAL_END_DAY, SIM_END_DAY
+from app.config.settings import DAY_DELAY_SECONDS, HISTORICAL_END_DAY, SIM_END_DAY
 from app.db.config_repo import current_config
 from app.db.models import (
     Decision, PendingApproval, Product, PurchaseOrder, SimState, Supplier,
@@ -130,6 +130,7 @@ def _run() -> None:
 
             _set_state("running", abs_day,
                        f"Sim day {sd}/90 — " + ("; ".join(world.events) if world.events else "ok"))
+            time.sleep(DAY_DELAY_SECONDS)  # smooth pacing between days
         with get_session() as s:
             st = s.get(SimState, 1)
             if st:

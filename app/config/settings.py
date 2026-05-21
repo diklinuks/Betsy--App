@@ -53,6 +53,10 @@ AGENT_MODE = os.getenv("BETSY_AGENT_MODE", "single")
 LLM_RPS = float(os.getenv("BETSY_LLM_RPS", "0.2"))   # requests/sec (~12/min)
 LLM_MAX_RETRIES = int(os.getenv("BETSY_LLM_MAX_RETRIES", "6"))
 
+# --- Pacing: pause between sim days so the run advances smoothly instead of
+#     blasting through many days at once (eases CPU + makes progress visible). ---
+DAY_DELAY_SECONDS = float(os.getenv("BETSY_DAY_DELAY", "0.5"))
+
 # --- Reasoning / budget guards ---
 MAX_REACT_STEPS = 8         # hard cap on tool-call cycles per decision
 REFLECTION_MAX_ITERS = 2    # high-stakes reflection iterations
