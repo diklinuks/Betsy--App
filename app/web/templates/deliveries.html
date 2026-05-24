@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Deliveries{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-1">Deliveries &amp; lessons</h1>
+<p class="text-slate-500 text-sm mb-6">What actually arrived, and what Betsy learned from outcomes and your rejections.</p>
+
+<h2 class="font-semibold mb-2">Deliveries</h2>
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100 text-slate-600 text-left">
+      <tr>
+        <th class="px-3 py-2">Day</th><th class="px-3 py-2">PO</th>
+        <th class="px-3 py-2">Supplier</th><th class="px-3 py-2">Product</th>
+        <th class="px-3 py-2">Qty</th><th class="px-3 py-2">On time</th>
+        <th class="px-3 py-2">Quality</th><th class="px-3 py-2">Defects</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in deliveries %}
+      {% set bad = (not d.on_time) or (not d.quality_pass) or d.defects_count > 0 %}
+      <tr class="border-t {{ 'bg-amber-50 border-amber-200' if bad else 'border-slate-100' }}">
+        <td class="px-3 py-2">{{ d.actual_delivery_day - 60 }}</td>
+        <td class="px-3 py-2">{{ d.po_id }}</td>
+        <td class="px-3 py-2">{{ d.supplier_id }}</td>
+        <td class="px-3 py-2">{{ d.product_id }}</td>
+        <td class="px-3 py-2">{{ d.quantity_received }}/{{ d.quantity_ordered }}</td>
+        <td class="px-3 py-2">{{ '✓' if d.on_time else 'late' }}</td>
+        <td class="px-3 py-2">{{ 'pass' if d.quality_pass else 'REJECTED' }}</td>
+        <td class="px-3 py-2">{{ d.defects_count }}</td>
+      </tr>
+      {% endfor %}
+      {% if not deliveries %}<tr><td colspan="8" class="px-3 py-6 text-center text-slate-400">No deliveries yet.</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="font-semibold mb-2">Lessons learned</h2>
+<p class="text-slate-500 text-sm mb-3">Reflections after outcomes and your rejection feedback — these are recalled on similar future decisions.</p>
+{% if not lessons %}<p class="text-slate-400 text-sm">No lessons yet.</p>{% endif %}
+{% for l in lessons %}
+<div class="bg-white rounded-xl border {{ 'border-rose-200' if l.kind == 'rejection' else 'border-slate-200' }} p-4 mb-2">
+  <div class="flex items-center justify-between">
+    <span class="px-2 py-0.5 rounded text-xs {{ 'bg-rose-100 text-rose-700' if l.kind=='rejection' else 'bg-indigo-100 text-indigo-700' }}">{{ l.kind }}</span>
+    <span class="text-xs text-slate-400">sim day {{ l.created_day }} · {{ l.product_id or '' }} {{ l.supplier_id or '' }}</span>
+  </div>
+  <p class="text-sm text-slate-700 mt-2">{{ l.text }}</p>
+</div>
+{% endfor %}
+{% endblock %}

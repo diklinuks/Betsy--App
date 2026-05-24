@@ -52,12 +52,18 @@ def _compute_report() -> dict:
                                           Invoice.phase == "simulation")).scalar_one()
 
         # --- stockouts ---
-        stockouts_occurred = s.execute(select(func.count()).select_from(Decision)
-                                       .where(Decision.trigger_type == "stockout")).scalar_one()
-        stockouts_prevented = s.execute(
-            select(func.count()).select_from(Decision).where(
-                Decision.trigger_type == "reorder", Decision.urgent.is_(True),
-                Decision.action == "po_generated")).scalar_one()
+        # "Prevented" = SKUs Betsy replenished (a reorder PO was placed) that never
+        # recorded an actual stockout. This credits reordering BEFORE stock hits zero,
+        # which is exactly the good behaviour (the old metric only counted late saves).
+        replenished = set(s.execute(
+            select(Decision.product_id).where(
+                Decision.trigger_type == "reorder", Decision.action == "po_generated",
+                Decision.product_id.isnot(None))).scalars().all())
+        stockout_products = set(s.execute(
+            select(Decision.product_id).where(
+                Decision.trigger_type == "stockout", Decision.product_id.isnot(None))).scalars().all())
+        stockouts_occurred = len(stockout_products)
+        stockouts_prevented = len(replenished - stockout_products)
 
         # --- decision volume ---
         total_decisions = s.execute(select(func.count()).select_from(Decision)).scalar_one()

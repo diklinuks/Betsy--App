@@ -62,8 +62,13 @@ def _format_user(ctx: dict) -> str:
             f"  - {c['supplier_id']} {c['name']}: ${c['unit_price']}/unit, "
             f"lead {c['lead_time_days']}d, MOQ {c['moq']}, score {c['current_score']}"
         )
-    lines.append("\nUse supplier_history and decision_search before deciding. "
-                 "Then give your structured proposal.")
+    if ctx.get("jenny_feedback"):
+        lines.append("\nJenny's past feedback on THIS product — you must honor it:")
+        for sup, reason in ctx["jenny_feedback"]:
+            lines.append(f"  - she rejected {sup}: {reason}")
+    if ctx.get("avoid_suppliers"):
+        lines.append("Do NOT choose these rejected suppliers: " + ", ".join(ctx["avoid_suppliers"]))
+    lines.append("\nGive your structured proposal.")
     return "\n".join(lines)
 
 

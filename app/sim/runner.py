@@ -235,7 +235,7 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
     with get_session() as s:
         p = s.get(Product, product_id)
         cfg_ver, cfg = current_config(s)
-        candidates = f.supplier_catalogue(s, product_id)
+        candidates, avoid, feedback = _candidates_for(s, product_id)
         stockout = p.current_stock == 0
 
         if stockout:  # learning: raise safety stock after a stockout
@@ -256,6 +256,7 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
                         "reorder_point": p.reorder_point, "safety_stock": p.safety_stock},
             "candidates": candidates, "sim_day": sd,
             "urgent": stockout or p.current_stock <= p.safety_stock,
+            "avoid_suppliers": list(avoid), "jenny_feedback": feedback,
         }
 
     proposal = propose_decision(ctx)  # LLM (or heuristic) — outside the session
@@ -264,7 +265,7 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
         p = s.get(Product, product_id)
         _, cfg = current_config(s)
         cfg_ver = current_config(s)[0]
-        candidates = f.supplier_catalogue(s, product_id)
+        candidates, _, _ = _candidates_for(s, product_id)
         chosen = _validate_choice(proposal, candidates)
         if chosen is None:
             _log_simple(s, sd, "reorder", product_id, "no valid supplier choice",
@@ -288,6 +289,10 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
                 decision_id=decision_id, sim_day=sd, product_id=product_id,
                 proposal={"supplier_id": chosen["supplier_id"], "supplier_name": chosen["name"],
                           "quantity": qty, "unit_price": unit_price, "total": total,
+                          "lead_time": chosen["lead_time_days"], "reliability": chosen["current_score"],
+                          "daily_usage": p.daily_usage_rate, "current_stock": p.current_stock,
+                          "reorder_point": p.reorder_point,
+                          "days_of_cover": round(p.current_stock / p.daily_usage_rate, 1) if p.daily_usage_rate else None,
                           "reasoning": proposal.get("reasoning", ""),
                           "alternatives": proposal.get("alternatives", []),
                           "confidence": proposal.get("confidence")},
@@ -372,6 +377,24 @@ def _process_invoices(s, world: SimWorld, abs_day: int) -> None:
 
 
 # ----------------------------- helpers ----------------------------- #
+def _candidates_for(s, product_id: str):
+    """Active suppliers for a product, MINUS any Jenny has rejected for it.
+    Returns (candidates, avoided_ids, feedback) where feedback = [(supplier, reason), ...].
+    This is the learning hook: a rejected supplier is dropped from the next decision so
+    Betsy can't keep proposing it."""
+    cands = f.supplier_catalogue(s, product_id)
+    pas = s.execute(
+        select(PendingApproval).where(
+            PendingApproval.product_id == product_id,
+            PendingApproval.status == "rejected")
+    ).scalars().all()
+    avoid = {pa.proposal.get("supplier_id") for pa in pas
+             if isinstance(pa.proposal, dict) and pa.proposal.get("supplier_id")}
+    feedback = [(pa.proposal.get("supplier_id"), pa.jenny_reason) for pa in pas if pa.jenny_reason]
+    filtered = [c for c in cands if c["supplier_id"] not in avoid]
+    return (filtered or cands), avoid, feedback
+
+
 def _validate_choice(proposal: dict, candidates: list[dict]) -> dict | None:
     by_id = {c["supplier_id"]: c for c in candidates}
     chosen = by_id.get(proposal.get("chosen_supplier_id"))

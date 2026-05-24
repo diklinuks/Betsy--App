@@ -25,8 +25,8 @@ def _get(name: str, default: str | None = None) -> str:
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 CHAT_MODEL = os.getenv("BETSY_CHAT_MODEL", "gemini-2.5-flash")
 REFLECTION_MODEL = os.getenv("BETSY_REFLECTION_MODEL", "gemini-2.5-flash")
-EMBEDDING_MODEL = os.getenv("BETSY_EMBEDDING_MODEL", "models/text-embedding-004")
-EMBEDDING_DIM = 768  # text-embedding-004 output dimension
+EMBEDDING_MODEL = os.getenv("BETSY_EMBEDDING_MODEL", "models/gemini-embedding-001")
+EMBEDDING_DIM = int(os.getenv("BETSY_EMBEDDING_DIM", "3072"))  # gemini-embedding-001 native dim
 
 # --- Database ---
 DATABASE_URL = os.getenv(

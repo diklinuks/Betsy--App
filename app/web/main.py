@@ -9,7 +9,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 
 from app.db.config_repo import current_config, save_config
-from app.db.models import Decision, PendingApproval, Product, SimState, Supplier
+from app.db.models import (
+    Decision, Delivery, Invoice, MemoryEmbedding, PendingApproval, Product,
+    PurchaseOrder, SimState, Supplier,
+)
 from app.db.session import get_session
 from app.sim import runner
 
@@ -85,6 +88,34 @@ def decision_detail(request: Request, decision_id: str):
             name="decision_detail.html",
             context={"request": request, "d": d},
         )
+
+
+@app.get("/invoices", response_class=HTMLResponse)
+def invoices_page(request: Request):
+    with get_session() as s:
+        rows = s.execute(
+            select(Invoice).where(Invoice.phase == "simulation")
+            .order_by(Invoice.invoice_day.desc())
+        ).scalars().all()
+        return templates.TemplateResponse(
+            request=request, name="invoices.html",
+            context={"request": request, "invoices": rows})
+
+
+@app.get("/deliveries", response_class=HTMLResponse)
+def deliveries_page(request: Request):
+    with get_session() as s:
+        dels = s.execute(
+            select(Delivery).where(Delivery.phase == "simulation")
+            .order_by(Delivery.actual_delivery_day.desc())
+        ).scalars().all()
+        lessons = s.execute(
+            select(MemoryEmbedding).where(MemoryEmbedding.kind.in_(["reflection", "rejection"]))
+            .order_by(MemoryEmbedding.id.desc()).limit(60)
+        ).scalars().all()
+        return templates.TemplateResponse(
+            request=request, name="deliveries.html",
+            context={"request": request, "deliveries": dels, "lessons": lessons})
 
 
 @app.get("/config", response_class=HTMLResponse)

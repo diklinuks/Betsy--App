@@ -35,6 +35,11 @@
             {{ pa.proposal.supplier_id }} ({{ pa.proposal.supplier_name }})</p>
           <p class="text-sm text-slate-500">Total ${{ "%.2f"|format(pa.proposal.total) }} ·
             confidence {{ pa.proposal.confidence }} · <span class="text-amber-700">{{ pa.reason_needed }}</span></p>
+          <p class="text-xs text-slate-600 mt-1">
+            ${{ pa.proposal.unit_price }}/unit · {{ pa.proposal.lead_time }}-day lead · reliability {{ pa.proposal.reliability }}<br>
+            stock {{ pa.proposal.current_stock }} / reorder {{ pa.proposal.reorder_point }} ·
+            daily usage {{ pa.proposal.daily_usage }} · ~{{ pa.proposal.days_of_cover }} days of cover
+          </p>
         </div>
         <span class="text-xs text-slate-400">sim day {{ pa.sim_day }}</span>
       </div>

@@ -36,9 +36,7 @@ def reflect_on_outcome(session, decision: Decision, outcome: dict) -> str | None
         verdict = "good" if outcome.get("on_time") and outcome.get("quality_pass") else "poor"
         lesson = (f"Supplier {decision.chosen_supplier} for {decision.product_id} "
                   f"produced a {verdict} outcome ({outcome}).")
-    embed_memory(session, kind="reflection", text=lesson,
-                 decision_id=decision.decision_id, supplier_id=decision.chosen_supplier,
-                 product_id=decision.product_id, created_day=decision.sim_day)
+    _safe_embed(session, "reflection", lesson, decision)
     return lesson
 
 
@@ -47,7 +45,15 @@ def record_rejection(session, decision: Decision, jenny_reason: str) -> str:
     lesson = (f"Jenny REJECTED choosing supplier {decision.chosen_supplier} for "
               f"product {decision.product_id}. Reason: {jenny_reason}. "
               f"Avoid this choice in similar cases.")
-    embed_memory(session, kind="rejection", text=lesson,
-                 decision_id=decision.decision_id, supplier_id=decision.chosen_supplier,
-                 product_id=decision.product_id, created_day=decision.sim_day)
+    _safe_embed(session, "rejection", lesson, decision)
     return lesson
+
+
+def _safe_embed(session, kind: str, text: str, decision) -> None:
+    """Embed best-effort; an embedding/model error must never crash the sim."""
+    try:
+        embed_memory(session, kind=kind, text=text, decision_id=decision.decision_id,
+                     supplier_id=decision.chosen_supplier, product_id=decision.product_id,
+                     created_day=decision.sim_day)
+    except Exception as e:  # noqa: BLE001
+        print(f"[learning] embed skipped ({type(e).__name__}): {e}")
