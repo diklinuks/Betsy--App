@@ -1,25 +1,44 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db.config_repo import current_config, save_config
 from app.db.models import (
     Decision, Delivery, Event, Invoice, MemoryEmbedding, PendingApproval, Product,
     PurchaseOrder, SimState, Supplier,
 )
-from app.db.session import get_session
+from app.db.session import get_session, init_db
 from app.sim import runner
+
+
+@asynccontextmanager
+async def lifespan(_app: "FastAPI"):
+    """On a fresh host (e.g. Render): ensure the schema + pgvector extension exist,
+    and seed the dataset once if the DB is empty. Idempotent — never wipes data."""
+    try:
+        init_db(drop=False)
+        with get_session() as s:
+            empty = s.execute(select(func.count()).select_from(Product)).scalar_one() == 0
+        if empty:
+            from app.db.loader import load_all
+            load_all(reset=False)
+            print("[startup] dataset seeded.")
+    except Exception as e:  # never block startup on a seeding hiccup
+        print(f"[startup] seed skipped: {type(e).__name__}: {e}")
+    yield
+
 
 BASE = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 
-app = FastAPI(title="Betsy — Procurement Agent")
+app = FastAPI(title="Betsy — Procurement Agent", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 

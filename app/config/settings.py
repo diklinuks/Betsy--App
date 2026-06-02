@@ -29,9 +29,15 @@ EMBEDDING_MODEL = os.getenv("BETSY_EMBEDDING_MODEL", "models/gemini-embedding-00
 EMBEDDING_DIM = int(os.getenv("BETSY_EMBEDDING_DIM", "3072"))  # gemini-embedding-001 native dim
 
 # --- Database ---
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql+psycopg://betsy:betsy@localhost:5433/betsy"
-)
+# Managed hosts (Render, Railway, Heroku, …) hand out URLs like
+# "postgres://…" or "postgresql://…". SQLAlchemy needs the psycopg3 driver
+# spelled out ("postgresql+psycopg://…"), so normalise whatever we're given.
+_DB_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://betsy:betsy@localhost:5433/betsy")
+if _DB_URL.startswith("postgres://"):
+    _DB_URL = "postgresql+psycopg://" + _DB_URL[len("postgres://"):]
+elif _DB_URL.startswith("postgresql://"):
+    _DB_URL = "postgresql+psycopg://" + _DB_URL[len("postgresql://"):]
+DATABASE_URL = _DB_URL
 
 # --- Simulation window (matches data/generate.py) ---
 HISTORICAL_END_DAY = 60

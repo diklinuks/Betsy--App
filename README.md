@@ -19,7 +19,7 @@ reorder points, weigh suppliers, place POs, receive (good and bad) deliveries, c
 invoice fraud, and bank lessons, step by step. Every KPI, supplier bar, and inventory
 flag updates *as of the day on the scrubber*.
 
-**Live demo:** https://diklinuks.github.io/Betsy-App/ &nbsp;*(after the first Pages deploy)*
+**Replay (static):** https://diklinuks.github.io/Betsy--App/
 
 It's a static React app (`web/ui/`) that reads a recorded `web/ui/public/run.json` — **no
 server, no database** at view time. Pushing to `main` builds and publishes it via GitHub
@@ -29,12 +29,29 @@ Actions (`.github/workflows/deploy-pages.yml`), which **auto-enables Pages** on 
 
 ```bash
 docker compose up -d                                # Postgres (pgvector)
-python -m app.main export web/ui/public/run.json    # record a fresh run (works WITHOUT a Gemini key)
+python -m app.main export web/ui/public/run.json    # record a fresh run (set GEMINI_API_KEY in .env for real LLM reasoning)
 cd web/ui && npm install && npm run dev             # preview the Control Room locally
 ```
 
 The export resets the DB, runs the sim headless, and captures the whole event stream +
 per-day snapshots into one JSON. Commit the new `run.json` and push to redeploy.
+
+---
+
+## Live interactive demo (Render)
+
+The replay above is a recording. To run the **real thing** online — Gemini making each
+decision, the run **pausing for your approval** on high-value POs, and **learning from your
+rejections** — deploy the FastAPI app to [Render](https://render.com) with the included
+[`render.yaml`](render.yaml) Blueprint:
+
+1. **render.com → New + → Blueprint** → connect this repo → **Apply**.
+2. Paste your **`GEMINI_API_KEY`** when prompted (stored as a secret).
+3. First boot creates the schema, enables `pgvector`, and seeds the dataset automatically.
+
+You get a public URL (e.g. `https://betsy.onrender.com`). The Blueprint provisions a free web
+service + free Postgres. (Free tier: the service sleeps after ~15 min idle — first hit wakes
+in ~45s — and the free database expires after ~30 days.)
 
 ---
 

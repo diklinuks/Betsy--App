@@ -1,0 +1,42 @@
+# Render Blueprint — one-click deploy of the LIVE Betsy app
+# (real Gemini decisions, human approvals, learning, Postgres + pgvector).
+#
+# Deploy:
+#   1. Push this repo to GitHub.
+#   2. render.com → New + → Blueprint → connect this repo.
+#   3. When prompted, paste your Gemini API key into GEMINI_API_KEY.
+#   4. Apply. First boot creates the schema, enables pgvector, and seeds the data.
+#
+# Free tier note: the web service sleeps after ~15 min idle (first hit then takes
+# ~45s to wake), and the free Postgres instance expires after ~30 days (re-creatable).
+
+services:
+  - type: web
+    name: betsy
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.web.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: GEMINI_API_KEY          # paste your key in the Render dashboard (secret)
+        sync: false
+      - key: DATABASE_URL            # injected from the database below
+        fromDatabase:
+          name: betsy-db
+          property: connectionString
+      - key: BETSY_AGENT_MODE        # one structured LLM call per reorder (free-tier friendly)
+        value: single
+      - key: BETSY_LLM_RPS           # throttle to ~12 req/min to respect the Gemini free tier
+        value: "0.2"
+      - key: BETSY_DAY_DELAY         # smooth per-day pacing so the run is watchable
+        value: "0.4"
+
+databases:
+  - name: betsy-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "16"
