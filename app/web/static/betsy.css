@@ -1,50 +1,59 @@
-/* Betsy Control Room — dark theme for the live FastAPI/HTMX dashboard.
-   Loaded after the Tailwind CDN so it re-themes the existing utility classes to
-   the same palette as the static replay UI, without rewriting every template. */
+/* Betsy Control Room — dark design system for the live FastAPI/HTMX dashboard.
+   Loaded after the Tailwind CDN so it both re-themes existing utility classes AND
+   provides polished component classes (.bb-*) used by the templates, matching the
+   static replay UI. */
 
 :root {
   --canvas: #0a0e14;
   --panel: #111722;
   --raised: #161e2b;
   --hairline: #1e2733;
+  --hairline-2: #2a3543;
   --ink: #e6edf3;
   --muted: #8b98a9;
   --faint: #5a6677;
   --accent: #34d399;
+  --accent-strong: #10b981;
+  --cyan: #22d3ee;
+  --warn: #fbbf24;
+  --bad: #fb7185;
+  --info: #38bdf8;
 }
 
+/* ----------------------------- base ----------------------------- */
 body {
   background: var(--canvas) !important;
   color: var(--ink) !important;
   background-image: radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 22px 22px;
 }
-
-/* numerals */
 table, .nums { font-variant-numeric: tabular-nums; }
+::selection { background: rgba(52, 211, 153, 0.25); }
 
-/* --- surfaces --- */
-.bg-white { background: var(--panel) !important; }
+/* ----------------------------- header ----------------------------- */
+header { background: rgba(13, 18, 26, 0.85) !important; }
+
+/* ----------------------------- surfaces (re-theme Tailwind) ----------------------------- */
+.bg-white {
+  background: var(--panel) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 14px 34px -22px rgba(0, 0, 0, 0.7) !important;
+}
 .bg-slate-50 { background: var(--canvas) !important; }
 .bg-slate-100 { background: var(--raised) !important; }
 .bg-slate-900 { background: #0c1119 !important; }
-.bg-blue-50 { background: rgba(56, 189, 248, 0.08) !important; }
+.bg-blue-50 { background: rgba(56, 189, 248, 0.07) !important; }
 
-/* --- text --- */
 .text-slate-900, .text-slate-800, .text-slate-700 { color: var(--ink) !important; }
 .text-slate-600, .text-slate-500 { color: var(--muted) !important; }
 .text-slate-400, .text-slate-300 { color: var(--faint) !important; }
 .text-white { color: #fff !important; }
 
-/* --- borders --- */
 .border-slate-200, .border-slate-100, .border-slate-300 { border-color: var(--hairline) !important; }
 .border-amber-200 { border-color: rgba(251, 191, 36, 0.4) !important; }
-.border-rose-200 { border-color: rgba(251, 113, 133, 0.4) !important; }
-.border-blue-200 { border-color: rgba(56, 189, 248, 0.4) !important; }
-.border-emerald-300 { border-color: rgba(52, 211, 153, 0.4) !important; }
-.border-rose-300 { border-color: rgba(251, 113, 133, 0.4) !important; }
+.border-rose-200, .border-rose-300 { border-color: rgba(251, 113, 133, 0.4) !important; }
+.border-blue-200, .border-emerald-300 { border-color: rgba(52, 211, 153, 0.35) !important; }
 
-/* --- status chips: pastel-on-white -> tint-on-dark --- */
+/* status chips (pastel-on-white -> tint-on-dark) */
 .bg-emerald-100 { background: rgba(52, 211, 153, 0.14) !important; }
 .bg-amber-100 { background: rgba(251, 191, 36, 0.15) !important; }
 .bg-rose-100, .bg-rose-200 { background: rgba(251, 113, 133, 0.16) !important; }
@@ -55,29 +64,86 @@ table, .nums { font-variant-numeric: tabular-nums; }
 .text-rose-800, .text-rose-700, .text-rose-600 { color: #fb7185 !important; }
 .text-blue-800, .text-blue-700, .text-sky-700 { color: #38bdf8 !important; }
 .text-indigo-700, .text-indigo-600 { color: #818cf8 !important; }
-
-/* highlighted table rows */
 .bg-amber-50 { background: rgba(251, 191, 36, 0.06) !important; }
 .bg-rose-50 { background: rgba(251, 113, 133, 0.06) !important; }
 
-/* --- form fields --- */
+/* ----------------------------- tables ----------------------------- */
+table thead { background: var(--raised) !important; }
+table thead th { color: var(--faint) !important; font-weight: 500; }
+table tbody tr { transition: background 0.12s ease; }
+.hover\:bg-slate-50:hover, table tbody tr:hover { background: rgba(255, 255, 255, 0.03) !important; }
+
+/* ----------------------------- inputs ----------------------------- */
 input, select, textarea {
   background: var(--raised) !important;
   color: var(--ink) !important;
-  border-color: var(--hairline) !important;
+  border: 1px solid var(--hairline) !important;
+  border-radius: 9px !important;
+  outline: none;
 }
 input::placeholder { color: var(--faint) !important; }
-table thead { background: var(--raised) !important; }
-tr:hover.hover\:bg-slate-50:hover, .hover\:bg-slate-50:hover { background: rgba(255, 255, 255, 0.03) !important; }
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(52, 211, 153, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.12) !important;
+}
 
-/* keep the accent action buttons readable */
-.bg-emerald-600, .bg-emerald-700 { background: #10b981 !important; color: #04130d !important; }
+/* ----------------------------- scrollbar ----------------------------- */
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: #243042; border-radius: 6px; border: 2px solid var(--canvas); }
+*::-webkit-scrollbar-thumb:hover { background: #34455a; }
 
-/* live activity feed */
+/* ============================ component classes ============================ */
+
+/* buttons */
+.bb-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 15px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  border: 1px solid var(--hairline-2); background: var(--raised); color: var(--ink);
+  cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+}
+.bb-btn:hover { border-color: rgba(52, 211, 153, 0.5); color: #fff; transform: translateY(-1px); }
+.bb-btn--accent {
+  background: linear-gradient(180deg, #34d399, #10b981); color: #04130d; border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.3), 0 8px 22px -10px rgba(52, 211, 153, 0.7);
+}
+.bb-btn--accent:hover { color: #04130d; filter: brightness(1.06); }
+.bb-btn--warn:hover { border-color: rgba(251, 191, 36, 0.6); color: var(--warn); }
+.bb-btn--info:hover { border-color: rgba(56, 189, 248, 0.6); color: var(--info); }
+.bb-btn--danger:hover { border-color: rgba(251, 113, 133, 0.6); color: var(--bad); }
+
+/* KPI deck */
+.bb-deck { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 720px) { .bb-deck { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.bb-tile {
+  background: var(--panel); border: 1px solid var(--hairline); border-radius: 14px; padding: 16px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 14px 34px -22px rgba(0, 0, 0, 0.7);
+}
+.bb-tile.is-accent { box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.2), 0 14px 34px -22px rgba(0, 0, 0, 0.7); }
+.bb-tile__label {
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); font-weight: 500;
+}
+.bb-tile__value { font-family: "JetBrains Mono", monospace; font-size: 26px; font-weight: 600; margin-top: 4px; color: #fff; }
+.bb-tile__value.tone-good { color: var(--accent); }
+.bb-tile__value.tone-warn { color: var(--warn); }
+.bb-tile__value.tone-bad { color: var(--bad); }
+.bb-tile__value.tone-info { color: var(--info); }
+.bb-tile__sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+
+/* meter */
+.bb-meter { height: 6px; border-radius: 999px; background: var(--hairline); overflow: hidden; margin-top: 10px; }
+.bb-meter > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); box-shadow: 0 0 12px -2px var(--accent); transition: width 0.5s ease; }
+
+/* status dot */
+.bb-dot { width: 9px; height: 9px; border-radius: 999px; display: inline-block; }
+.bb-dot.run { background: var(--accent); animation: bbPulse 1.8s ease-in-out infinite; }
+.bb-dot.pause { background: var(--warn); }
+.bb-dot.done { background: var(--info); }
+.bb-dot.idle { background: var(--muted); }
+.bb-dot.err { background: var(--bad); }
+@keyframes bbPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.55);} 50% { box-shadow: 0 0 0 6px rgba(52,211,153,0);} }
+
+/* activity feed */
 .feed-row { border-bottom: 1px solid rgba(30, 39, 51, 0.7); }
 .feed-dot { width: 8px; height: 8px; border-radius: 999px; flex: 0 0 auto; margin-top: 6px; }
-.sev-info { background: #38bdf8; }
-.sev-good { background: #34d399; }
-.sev-action { background: #34d399; }
-.sev-warn { background: #fbbf24; }
-.sev-bad { background: #fb7185; }
+.sev-info { background: var(--info); } .sev-good { background: var(--accent); }
+.sev-action { background: var(--accent); } .sev-warn { background: var(--warn); } .sev-bad { background: var(--bad); }

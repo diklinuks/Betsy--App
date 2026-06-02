@@ -59,6 +59,40 @@ def _pending(s) -> list[PendingApproval]:
     ).scalars().all()
 
 
+def _deck_stats(s) -> dict:
+    """Live KPI tiles for the dashboard command-deck. Cheap aggregate queries."""
+    def c(q) -> int:
+        return int(s.execute(q).scalar_one() or 0)
+
+    not_dead = PurchaseOrder.status.notin_(["cancelled", "rejected"])
+    spend = float(s.execute(
+        select(func.coalesce(func.sum(PurchaseOrder.total_amount), 0.0))
+        .where(PurchaseOrder.phase == "simulation", not_dead)).scalar_one())
+    pos = c(select(func.count()).select_from(PurchaseOrder)
+            .where(PurchaseOrder.phase == "simulation", not_dead))
+    deliveries = c(select(func.count()).select_from(Delivery).where(Delivery.phase == "simulation"))
+    on_time = c(select(func.count()).select_from(Delivery)
+                .where(Delivery.phase == "simulation", Delivery.on_time.is_(True)))
+    invoice_errors = c(select(func.count()).select_from(Invoice)
+                       .where(Invoice.phase == "simulation", Invoice.payment_status == "held"))
+    lessons = c(select(func.count()).select_from(Event).where(Event.kind == "lesson"))
+    approved = c(select(func.count()).select_from(PendingApproval)
+                 .where(PendingApproval.status == "approved"))
+    rejected = c(select(func.count()).select_from(PendingApproval)
+                 .where(PendingApproval.status == "rejected"))
+    active = c(select(func.count()).select_from(Supplier).where(Supplier.status == "active"))
+    total_sup = c(select(func.count()).select_from(Supplier))
+    resolved = approved + rejected
+    return {
+        "spend": spend, "pos": pos, "deliveries": deliveries, "on_time": on_time,
+        "on_time_rate": (on_time / deliveries) if deliveries else None,
+        "invoice_errors": invoice_errors, "lessons": lessons,
+        "approved": approved, "rejected": rejected,
+        "approval_rate": (approved / resolved) if resolved else None,
+        "active": active, "total_sup": total_sup,
+    }
+
+
 # ----------------------------- pages ----------------------------- #
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
@@ -77,12 +111,13 @@ def live(request: Request):
         st = _sim_state(s)
         pending = _pending(s)
         sd = max(0, st.current_day - 60)
+        stats = _deck_stats(s)
         return templates.TemplateResponse(
-            request=request, 
-            name="partials/live.html", 
+            request=request,
+            name="partials/live.html",
             context={
                 "request": request, "state": st, "pending": pending,
-                "running": runner.is_running(), "sim_day": sd,
+                "running": runner.is_running(), "sim_day": sd, "stats": stats,
             }
         )
 
