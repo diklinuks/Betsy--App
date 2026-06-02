@@ -11,6 +11,33 @@ PostgreSQL/pgvector). See **[Architecture](#architecture)** for the decision map
 
 ---
 
+## Control Room — live replay (GitHub Pages)
+
+A dark **"control-room" UI** that **replays a full 90-day run** with complete
+traceability — press play or drag the day slider to watch Betsy consume stock, hit
+reorder points, weigh suppliers, place POs, receive (good and bad) deliveries, catch
+invoice fraud, and bank lessons, step by step. Every KPI, supplier bar, and inventory
+flag updates *as of the day on the scrubber*.
+
+**Live demo:** https://diklinuks.github.io/Betsy-App/ &nbsp;*(after the first Pages deploy)*
+
+It's a static React app (`web/ui/`) that reads a recorded `web/ui/public/run.json` — **no
+server, no database** at view time. Pushing to `main` builds and publishes it via GitHub
+Actions (`.github/workflows/deploy-pages.yml`), which **auto-enables Pages** on its first run.
+
+### Regenerate the replay data
+
+```bash
+docker compose up -d                                # Postgres (pgvector)
+python -m app.main export web/ui/public/run.json    # record a fresh run (works WITHOUT a Gemini key)
+cd web/ui && npm install && npm run dev             # preview the Control Room locally
+```
+
+The export resets the DB, runs the sim headless, and captures the whole event stream +
+per-day snapshots into one JSON. Commit the new `run.json` and push to redeploy.
+
+---
+
 ## Quick start
 
 > Prerequisites: **Docker Desktop** running, **Python 3.12**, and a free

@@ -11,6 +11,7 @@ import random
 from sqlalchemy import select
 
 from app.db.models import Invoice, Product, PurchaseOrder, Supplier
+from app.sim.events import emit
 from app.sim.scenarios import (
     active_invoice_override, world_scenarios_for_day,
 )
@@ -41,9 +42,15 @@ class SimWorld:
                     sup.status = "inactive"
                     self.fired.add(sc["id"])
                     self.events.append(f"scenario {sc['id']}: {sc['supplier']} in shortage")
+                    emit(session, abs_day=abs_day, kind="scenario", severity="warn",
+                         title=f"{sup.name} ({sc['supplier']}) entered a supply shortage",
+                         supplier_id=sc["supplier"], detail={"scenario": sc["id"]})
                 elif sc.get("until_sim_day") == sd and sup.status == "inactive":
                     sup.status = "active"
                     self.events.append(f"{sc['supplier']} shortage cleared")
+                    emit(session, abs_day=abs_day, kind="scenario", severity="good",
+                         title=f"{sup.name} ({sc['supplier']}) shortage cleared",
+                         supplier_id=sc["supplier"], detail={"scenario": sc["id"]})
 
         # bankruptcy: flip inactive + cancel open POs
         for sc in world_scenarios_for_day(sd):
@@ -60,6 +67,9 @@ class SimWorld:
                     po.notes = (po.notes + f" | cancelled: {sc['supplier']} bankrupt").strip(" |")
                 self.fired.add(sc["id"])
                 self.events.append(f"scenario {sc['id']}: {sc['supplier']} bankrupt, open POs cancelled")
+                emit(session, abs_day=abs_day, kind="scenario", severity="bad",
+                     title=f"{sc['supplier']} went bankrupt — open POs cancelled",
+                     supplier_id=sc["supplier"], detail={"scenario": sc["id"]})
         session.flush()
 
     # --------------------------- consumption --------------------------- #
@@ -75,14 +85,28 @@ class SimWorld:
                 self.fired.add(sc["id"])
 
         stockouts = []
+        total_consumed = 0
         for p in session.execute(select(Product)).scalars():
             extra = spikes.get(p.product_id, 0)
+            used = min(p.current_stock, p.daily_usage_rate + extra)
+            total_consumed += used
             p.current_stock = max(0, p.current_stock - (p.daily_usage_rate + extra))
             if p.product_id in forced:
                 p.current_stock = 0
                 self.events.append(f"scenario forced stockout on {p.product_id}")
+                emit(session, abs_day=abs_day, kind="stockout", severity="bad",
+                     title=f"Forced stockout on {p.product_id} (scenario)",
+                     product_id=p.product_id, detail={"daily_usage": p.daily_usage_rate})
             if p.current_stock == 0:
                 stockouts.append(p.product_id)
+        if spikes:
+            for pid, extra in spikes.items():
+                emit(session, abs_day=abs_day, kind="scenario", severity="warn",
+                     title=f"Demand spike on {pid} (+{extra}/day)", product_id=pid,
+                     detail={"extra_per_day": extra})
+        emit(session, abs_day=abs_day, kind="consumption", severity="info",
+             title=f"Consumed {total_consumed} units across the line",
+             detail={"total_units": total_consumed, "stockouts": stockouts})
         session.flush()
         return stockouts
 
@@ -164,9 +188,16 @@ class SimWorld:
             if ov and ov["type"] == "invoice_mismatch":
                 amount = round(po.total_amount * (1 + ov["extra_pct"]), 2)
                 self.fired.add(ov["id"]); self.events.append(f"scenario {ov['id']}: invoice mismatch")
+                emit(session, abs_day=abs_day, kind="invoice", severity="warn",
+                     title=f"Inflated invoice arrived from {po.supplier_id} (+{int(ov['extra_pct']*100)}%)",
+                     supplier_id=po.supplier_id, po_id=po.po_id,
+                     detail={"scenario": ov["id"], "billed": amount, "po_amount": po.total_amount})
             elif ov and ov["type"] == "duplicate_invoice":
                 make_dup = True
                 self.fired.add(ov["id"]); self.events.append(f"scenario {ov['id']}: duplicate invoice")
+                emit(session, abs_day=abs_day, kind="invoice", severity="warn",
+                     title=f"Duplicate invoice arrived from {po.supplier_id}",
+                     supplier_id=po.supplier_id, po_id=po.po_id, detail={"scenario": ov["id"]})
 
             created.append(self._insert_invoice(session, po, amount, inv_no, abs_day, sd))
             if make_dup:  # second row, same invoice_number -> caught by invoice_match

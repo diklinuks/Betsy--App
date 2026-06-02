@@ -17,10 +17,11 @@ from app.agent.graph import propose_decision
 from app.config.settings import DAY_DELAY_SECONDS, HISTORICAL_END_DAY, SIM_END_DAY
 from app.db.config_repo import current_config
 from app.db.models import (
-    Decision, PendingApproval, Product, PurchaseOrder, SimState, Supplier,
+    Decision, Invoice, PendingApproval, Product, PurchaseOrder, SimState, Supplier,
 )
 from app.db.session import get_session
 from app.learning.reflection import record_rejection, reflect_on_outcome
+from app.sim.events import emit
 from app.sim.world import SimWorld
 from app.tools import functions as f
 from app.util import sim_day as to_sim_day
@@ -102,7 +103,10 @@ def _set_state(status: str, day: int | None = None, message: str = "") -> None:
 
 
 # ----------------------------- the loop ----------------------------- #
-def _run() -> None:
+def _run(on_day_end=None) -> None:
+    """Run the 90-day sim. `on_day_end(abs_day)` (optional) is called after each day
+    completes — the exporter uses it to snapshot per-day state for the replay; the
+    live dashboard passes nothing and keeps its current behaviour."""
     world = SimWorld(seed=42)
     _set_state("running", HISTORICAL_END_DAY, "Simulation started.")
     try:
@@ -128,8 +132,14 @@ def _run() -> None:
             with get_session() as s:
                 _process_invoices(s, world, abs_day)
 
-            _set_state("running", abs_day,
-                       f"Sim day {sd}/90 — " + ("; ".join(world.events) if world.events else "ok"))
+            summary = "; ".join(world.events) if world.events else "no notable events"
+            with get_session() as s:
+                emit(s, abs_day=abs_day, kind="day_summary", severity="info",
+                     title=f"Day {sd} complete — {summary}",
+                     detail={"events": list(world.events)})
+            _set_state("running", abs_day, f"Sim day {sd}/90 — " + summary)
+            if on_day_end is not None:
+                on_day_end(abs_day)
             time.sleep(DAY_DELAY_SECONDS)  # smooth pacing between days
         with get_session() as s:
             st = s.get(SimState, 1)
@@ -154,6 +164,13 @@ def _ship_due_pos(s, world: SimWorld, abs_day: int) -> None:
         outcome = world.outcome_for_po(po, sup, abs_day)
         po.status = "shipped"
         world.schedule_delivery(po.po_id, outcome)
+        late = outcome["actual_day"] - po.expected_delivery_day
+        emit(s, abs_day=abs_day, kind="shipment",
+             severity="warn" if late > 0 else "info",
+             title=(f"{po.supplier_id} shipped {po.po_id}"
+                    + (f" — running {late}d late" if late > 0 else " — on schedule")),
+             supplier_id=po.supplier_id, product_id=po.product_id, po_id=po.po_id,
+             decision_id=po.decision_id, detail={"expected_in_days": late})
     s.flush()
 
 
@@ -169,9 +186,33 @@ def _process_deliveries(s, world: SimWorld, abs_day: int) -> None:
             notes=o["note"])
         if o["qty_received"]:
             f.inventory_update(s, po.product_id, o["qty_received"])
-        f.supplier_score_update(s, po.supplier_id, rec["delivery_id"])
+        scored = f.supplier_score_update(s, po.supplier_id, rec["delivery_id"])
         world.schedule_invoice(po.po_id, abs_day)
-        _close_decision(s, po, o)  # outcome-triggered reflection
+
+        clean = o["on_time"] and o["quality_pass"] and o["defects"] == 0
+        problems = []
+        if not o["on_time"]:
+            problems.append("late")
+        if o["defects"]:
+            problems.append(f"{o['defects']} defects")
+        if not o["quality_pass"]:
+            problems.append("quality REJECTED")
+        if o["qty_received"] < po.quantity:
+            problems.append(f"short {po.quantity - o['qty_received']}")
+        emit(s, abs_day=abs_day, kind="delivery", severity="good" if clean else "bad",
+             title=(f"Delivery of {po.product_id} from {po.supplier_id} — "
+                    + ("clean: on time, full quantity" if clean else ", ".join(problems))),
+             supplier_id=po.supplier_id, product_id=po.product_id, po_id=po.po_id,
+             decision_id=po.decision_id,
+             detail={"on_time": o["on_time"], "quality_pass": o["quality_pass"],
+                     "defects": o["defects"], "qty_received": o["qty_received"],
+                     "qty_ordered": po.quantity})
+        new_score = scored.get("new_score")
+        if new_score is not None:
+            emit(s, abs_day=abs_day, kind="score", severity="info",
+                 title=f"Recomputed {po.supplier_id} reliability → {round(new_score, 3)}",
+                 supplier_id=po.supplier_id, detail={"new_score": round(new_score, 4)})
+        _close_decision(s, po, o, abs_day)  # outcome-triggered reflection (+ lesson event)
     # partial-delivery remainders
     for r in world.due_remainders(abs_day):
         po = s.get(PurchaseOrder, r["po_id"])
@@ -181,10 +222,11 @@ def _process_deliveries(s, world: SimWorld, abs_day: int) -> None:
     s.flush()
 
 
-def _close_decision(s, po: PurchaseOrder, outcome: dict) -> None:
+def _close_decision(s, po: PurchaseOrder, outcome: dict, abs_day: int) -> None:
     """Record the outcome on the decision. Reflection (an LLM call) fires only on a
     POOR outcome — late, defective, or short — to stay inside the free-tier quota.
-    Good outcomes just record the result with no model call."""
+    Good outcomes just record the result with no model call. A POOR outcome also
+    emits a 'lesson' event so the learning is visible even when embeddings are off."""
     if not po.decision_id:
         return
     dec = s.get(Decision, po.decision_id)
@@ -196,7 +238,12 @@ def _close_decision(s, po: PurchaseOrder, outcome: dict) -> None:
     }
     poor = (not outcome["on_time"]) or (not outcome["quality_pass"]) or outcome["defects"] > 0
     if poor:
-        reflect_on_outcome(s, dec, result)   # writes + embeds a lesson (LLM)
+        lesson = reflect_on_outcome(s, dec, result)   # writes + embeds a lesson (LLM)
+        if lesson:
+            emit(s, abs_day=abs_day, kind="lesson", severity="good",
+                 title=f"Lesson learned about {po.supplier_id} / {po.product_id}",
+                 supplier_id=po.supplier_id, product_id=po.product_id,
+                 decision_id=po.decision_id, detail={"lesson": lesson, "kind": "reflection"})
     else:
         dec.outcome = result                 # record only; no model call
         s.flush()
@@ -237,6 +284,7 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
         cfg_ver, cfg = current_config(s)
         candidates, avoid, feedback = _candidates_for(s, product_id)
         stockout = p.current_stock == 0
+        urgent = stockout or p.current_stock <= p.safety_stock
 
         if stockout:  # learning: raise safety stock after a stockout
             bump = p.daily_usage_rate * 7
@@ -244,10 +292,24 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
             p.reorder_point += bump
             s.flush()
             world.events.append(f"stockout on {product_id}: safety stock raised +{bump}")
+            emit(s, abs_day=abs_day, kind="stockout", severity="bad",
+                 title=f"STOCKOUT on {product_id} — safety stock raised +{bump}",
+                 product_id=product_id, detail={"safety_stock_bump": bump})
+
+        emit(s, abs_day=abs_day, kind="reorder", severity="warn" if urgent else "action",
+             title=(f"Reorder point hit for {product_id} — stock {p.current_stock} "
+                    f"≤ ROP {p.reorder_point}" + (" (URGENT)" if urgent else "")),
+             product_id=product_id,
+             detail={"current_stock": p.current_stock, "reorder_point": p.reorder_point,
+                     "safety_stock": p.safety_stock, "daily_usage": p.daily_usage_rate,
+                     "candidates": len(candidates), "urgent": urgent})
 
         if not candidates:
             _log_simple(s, sd, "reorder", product_id, "no active supplier — escalated",
                         escalated=True, action="escalated")
+            emit(s, abs_day=abs_day, kind="escalation", severity="warn",
+                 title=f"No active supplier for {product_id} — escalated to Jenny",
+                 product_id=product_id)
             return
 
         ctx = {
@@ -279,6 +341,16 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
                        "unit_price": c["unit_price"], "lead": c["lead_time_days"]}
                       for c in candidates]
 
+        emit(s, abs_day=abs_day, kind="proposal", severity="action",
+             title=(f"Betsy proposes {qty}×{product_id} from {chosen['supplier_id']} "
+                    f"(${total:,.2f})"),
+             product_id=product_id, supplier_id=chosen["supplier_id"], decision_id=decision_id,
+             detail={"reasoning": proposal.get("reasoning", ""),
+                     "confidence": proposal.get("confidence"),
+                     "alternatives": proposal.get("alternatives", []),
+                     "source": proposal.get("_source", ""), "candidates": cand_audit,
+                     "quantity": qty, "unit_price": unit_price, "total": total})
+
         over_cap = total > cfg["per_po_cap"] or \
             f._month_to_date_spend(s, abs_day) + total > cfg["monthly_cap"]
         needs_human = bool(proposal.get("escalate")) or over_cap
@@ -307,6 +379,10 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
                 confidence=proposal.get("confidence"), action="awaiting_approval",
                 escalated=True, attribution="pending", config_version=cfg_ver,
                 urgent=ctx["urgent"])
+            emit(s, abs_day=abs_day, kind="escalation", severity="warn",
+                 title=f"Escalated to Jenny: {product_id} — {reason}",
+                 product_id=product_id, supplier_id=chosen["supplier_id"],
+                 decision_id=decision_id, detail={"reason": reason, "total": total})
 
     if needs_human:
         _set_state("paused", abs_day, f"Awaiting approval for {product_id} (sim day {sd}).")
@@ -330,6 +406,19 @@ def _handle_reorder(world: SimWorld, abs_day: int, product_id: str) -> None:
             reasoning=proposal.get("reasoning", ""), alternatives=proposal.get("alternatives", []),
             confidence=proposal.get("confidence"), action=action, escalated=False,
             attribution="autonomous", config_version=cfg_ver, urgent=ctx["urgent"])
+        if action == "po_generated":
+            emit(s, abs_day=abs_day, kind="po", severity="good",
+                 title=(f"PO {res.get('po_id')} placed autonomously: {qty}×{product_id} "
+                        f"from {chosen['supplier_id']} — ${total:,.2f}"),
+                 product_id=product_id, supplier_id=chosen["supplier_id"],
+                 po_id=res.get("po_id"), decision_id=decision_id,
+                 detail={"quantity": qty, "unit_price": unit_price, "total": total,
+                         "expected_delivery_day": res.get("expected_delivery_day")})
+        else:
+            emit(s, abs_day=abs_day, kind="po", severity="bad",
+                 title=f"PO for {product_id} blocked ({action})",
+                 product_id=product_id, supplier_id=chosen["supplier_id"],
+                 decision_id=decision_id, detail={"status": action})
 
 
 def _await_resolution(decision_id: str) -> tuple[str, str]:
@@ -348,32 +437,61 @@ def _apply_resolution(decision_id, product_id, chosen, qty, unit_price, abs_day,
                       status, jenny_reason, world: SimWorld) -> None:
     with get_session() as s:
         dec = s.get(Decision, decision_id)
+        total = round(qty * unit_price, 2)
         if status == "approved":
-            f.po_generate(s, product_id, chosen["supplier_id"], qty, unit_price,
-                          day=abs_day, sim_day=sd, decision_id=decision_id,
-                          approved=True, attribution="post-approval",
-                          notes="approved by Jenny")
+            res = f.po_generate(s, product_id, chosen["supplier_id"], qty, unit_price,
+                                day=abs_day, sim_day=sd, decision_id=decision_id,
+                                approved=True, attribution="post-approval",
+                                notes="approved by Jenny")
             if dec:
                 dec.action = "po_generated"
                 dec.attribution = "post-approval"
+            world.events.append(f"Jenny approved reorder for {product_id}")
+            emit(s, abs_day=abs_day, kind="approval", severity="good",
+                 title=(f"Jenny APPROVED {product_id} — PO {res.get('po_id')} placed "
+                        f"(${total:,.2f})"),
+                 product_id=product_id, supplier_id=chosen["supplier_id"],
+                 po_id=res.get("po_id"), decision_id=decision_id,
+                 detail={"reason": jenny_reason, "total": total})
         else:
             if dec:
                 dec.action = "rejected"
                 dec.attribution = "post-approval"
-                record_rejection(s, dec, jenny_reason or "no reason given")
+                lesson = record_rejection(s, dec, jenny_reason or "no reason given")
+                emit(s, abs_day=abs_day, kind="lesson", severity="warn",
+                     title=f"Lesson banked from Jenny's rejection of {chosen['supplier_id']}",
+                     product_id=product_id, supplier_id=chosen["supplier_id"],
+                     decision_id=decision_id, detail={"lesson": lesson, "kind": "rejection"})
             world.events.append(f"Jenny rejected reorder for {product_id}")
+            emit(s, abs_day=abs_day, kind="rejection", severity="bad",
+                 title=f"Jenny REJECTED {product_id} from {chosen['supplier_id']}",
+                 product_id=product_id, supplier_id=chosen["supplier_id"],
+                 decision_id=decision_id, detail={"reason": jenny_reason})
 
 
 # ----------------------------- invoice side ----------------------------- #
 def _process_invoices(s, world: SimWorld, abs_day: int) -> None:
     for inv_id in world.make_due_invoices(s, abs_day):
         res = f.invoice_match(s, inv_id)
+        inv = s.get(Invoice, inv_id)
         if res.get("status") == "held":
             sd = to_sim_day(abs_day)
             _log_simple(s, sd, "invoice", None,
                         f"invoice {inv_id} held: {res.get('anomaly')}",
                         escalated=True, action="invoice_held")
             world.events.append(f"invoice anomaly: {res.get('anomaly')}")
+            emit(s, abs_day=abs_day, kind="invoice_held", severity="bad",
+                 title=f"Invoice {inv_id} HELD — {res.get('anomaly')}",
+                 supplier_id=inv.supplier_id if inv else None,
+                 po_id=inv.po_id if inv else None,
+                 detail={"anomaly": res.get("anomaly"), "is_duplicate": res.get("is_duplicate"),
+                         "amount": inv.amount if inv else None,
+                         "po_amount": inv.po_amount if inv else None})
+        elif inv is not None:
+            emit(s, abs_day=abs_day, kind="invoice", severity="info",
+                 title=f"Invoice {inv_id} reconciled & paid — {inv.supplier_id} (${inv.amount:,.2f})",
+                 supplier_id=inv.supplier_id, po_id=inv.po_id,
+                 detail={"amount": inv.amount, "matches_po": inv.matches_po})
 
 
 # ----------------------------- helpers ----------------------------- #
