@@ -42,6 +42,25 @@ app = FastAPI(title="Betsy — Procurement Agent", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 
+def _pending_count() -> int:
+    """Pending-approval count — exposed to every template for the rail badge."""
+    try:
+        with get_session() as s:
+            return int(s.execute(
+                select(func.count()).select_from(PendingApproval)
+                .where(PendingApproval.status == "pending")).scalar_one() or 0)
+    except Exception:
+        return 0
+
+
+templates.env.globals["pending_count"] = _pending_count
+
+
+def _back(request: Request, default: str = "/") -> RedirectResponse:
+    """Redirect to the page the action came from (so controls work from any view)."""
+    return RedirectResponse(request.headers.get("referer") or default, status_code=303)
+
+
 # ----------------------------- helpers ----------------------------- #
 def _sim_state(s) -> SimState:
     st = s.get(SimState, 1)
@@ -93,6 +112,84 @@ def _deck_stats(s) -> dict:
     }
 
 
+def _spend_series(s) -> list[dict]:
+    """Cumulative procurement spend by sim day (for the deck area chart)."""
+    rows = s.execute(
+        select(PurchaseOrder.placed_day, PurchaseOrder.total_amount)
+        .where(PurchaseOrder.phase == "simulation",
+               PurchaseOrder.status.notin_(["cancelled", "rejected"]))).all()
+    by_day: dict[int, float] = {}
+    for pd, amt in rows:
+        by_day[pd] = by_day.get(pd, 0.0) + float(amt or 0)
+    cum, series = 0.0, []
+    for d in sorted(by_day):
+        cum += by_day[d]
+        series.append({"day": d - 60, "spend": round(cum, 2)})
+    return series
+
+
+def _supplier_spark(s, supplier_id: str, limit: int = 30) -> list[float]:
+    details = s.execute(
+        select(Event.detail).where(Event.kind == "score", Event.supplier_id == supplier_id)
+        .order_by(Event.id)).scalars().all()
+    vals = [float(d["new_score"]) for d in details if d and d.get("new_score") is not None]
+    return vals[-limit:]
+
+
+def _supplier_rows(s) -> list[dict]:
+    sups = s.execute(select(Supplier).order_by(Supplier.current_score.desc())).scalars().all()
+    return [{"s": sup, "spark": _supplier_spark(s, sup.supplier_id)} for sup in sups]
+
+
+def _inventory_rows(s) -> list[dict]:
+    prods = s.execute(select(Product).order_by(Product.product_id)).scalars().all()
+    order = {"stockout": 0, "reorder": 1, "ok": 2}
+    out = []
+    for p in prods:
+        state = "stockout" if p.current_stock == 0 else (
+            "reorder" if p.current_stock <= p.reorder_point else "ok")
+        out.append({
+            "p": p, "state": state,
+            "days_cover": round(p.current_stock / p.daily_usage_rate, 1) if p.daily_usage_rate else None,
+            "scale": max(p.current_stock, p.reorder_point, p.safety_stock, 1) * 1.25,
+        })
+    out.sort(key=lambda r: (order[r["state"]], r["days_cover"] if r["days_cover"] is not None else 999))
+    return out
+
+
+def _scenario_rows(s) -> list[dict]:
+    from app.eval.export import _scenario_description
+    from app.sim.scenarios import SCENARIOS
+    st = s.get(SimState, 1)
+    fired = set(st.fired_scenarios or []) if st else set()
+    return [{"id": sc["id"], "type": sc["type"], "day": sc.get("sim_day"),
+             "desc": _scenario_description(sc), "fired": sc["id"] in fired} for sc in SCENARIOS]
+
+
+def _lessons(s) -> list[MemoryEmbedding]:
+    return s.execute(
+        select(MemoryEmbedding).where(MemoryEmbedding.kind.in_(["reflection", "rejection"]))
+        .order_by(MemoryEmbedding.id.desc()).limit(80)).scalars().all()
+
+
+def _pending_detailed(s) -> list[dict]:
+    out = []
+    for pa in _pending(s):
+        dec = s.get(Decision, pa.decision_id)
+        out.append({"pa": pa, "candidates": (dec.candidates if dec else []) or []})
+    return out
+
+
+def _rejection_reason(s, decision_id: str) -> tuple[str, str]:
+    pa = s.get(PendingApproval, decision_id)
+    reason = pa.jenny_reason if pa else ""
+    lesson = s.execute(
+        select(MemoryEmbedding).where(MemoryEmbedding.kind == "rejection",
+                                      MemoryEmbedding.decision_id == decision_id)
+        .order_by(MemoryEmbedding.id.desc())).scalars().first()
+    return reason, (lesson.text if lesson else "")
+
+
 # ----------------------------- pages ----------------------------- #
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
@@ -105,6 +202,16 @@ def dashboard(request: Request):
         )
 
 
+@app.get("/fragment/topstatus", response_class=HTMLResponse)
+def topstatus(request: Request):
+    with get_session() as s:
+        st = _sim_state(s)
+        return templates.TemplateResponse(
+            request=request, name="partials/topstatus.html",
+            context={"request": request, "state": st,
+                     "sim_day": max(0, st.current_day - 60), "pending": _pending_count()})
+
+
 @app.get("/fragment/live", response_class=HTMLResponse)
 def live(request: Request):
     with get_session() as s:
@@ -112,14 +219,58 @@ def live(request: Request):
         pending = _pending(s)
         sd = max(0, st.current_day - 60)
         stats = _deck_stats(s)
+        _, cfg = current_config(s)
         return templates.TemplateResponse(
             request=request,
             name="partials/live.html",
             context={
                 "request": request, "state": st, "pending": pending,
                 "running": runner.is_running(), "sim_day": sd, "stats": stats,
+                "spend_series": _spend_series(s), "leaders": _supplier_rows(s)[:6],
+                "monthly_cap": cfg.get("monthly_cap", 50000),
             }
         )
+
+
+@app.get("/approvals", response_class=HTMLResponse)
+def approvals_page(request: Request):
+    with get_session() as s:
+        return templates.TemplateResponse(
+            request=request, name="approvals.html",
+            context={"request": request, "items": _pending_detailed(s),
+                     "running": runner.is_running()})
+
+
+@app.get("/suppliers", response_class=HTMLResponse)
+def suppliers_page(request: Request):
+    with get_session() as s:
+        return templates.TemplateResponse(
+            request=request, name="suppliers.html",
+            context={"request": request, "rows": _supplier_rows(s)})
+
+
+@app.get("/inventory", response_class=HTMLResponse)
+def inventory_page(request: Request):
+    with get_session() as s:
+        return templates.TemplateResponse(
+            request=request, name="inventory.html",
+            context={"request": request, "rows": _inventory_rows(s)})
+
+
+@app.get("/lessons", response_class=HTMLResponse)
+def lessons_page(request: Request):
+    with get_session() as s:
+        return templates.TemplateResponse(
+            request=request, name="lessons.html",
+            context={"request": request, "lessons": _lessons(s)})
+
+
+@app.get("/scenarios", response_class=HTMLResponse)
+def scenarios_page(request: Request):
+    with get_session() as s:
+        return templates.TemplateResponse(
+            request=request, name="scenarios.html",
+            context={"request": request, "scenarios": _scenario_rows(s)})
 
 
 @app.get("/activity", response_class=HTMLResponse)
@@ -150,10 +301,14 @@ def decisions(request: Request):
 def decision_detail(request: Request, decision_id: str):
     with get_session() as s:
         d = s.get(Decision, decision_id)
+        rej_reason, rej_lesson = ("", "")
+        if d and d.action == "rejected":
+            rej_reason, rej_lesson = _rejection_reason(s, decision_id)
         return templates.TemplateResponse(
             request=request,
             name="decision_detail.html",
-            context={"request": request, "d": d},
+            context={"request": request, "d": d,
+                     "rej_reason": rej_reason, "rej_lesson": rej_lesson},
         )
 
 
@@ -210,45 +365,45 @@ def report_page(request: Request):
 
 # ----------------------------- actions ----------------------------- #
 @app.post("/run")
-def run():
+def run(request: Request):
     runner.start(reset_data=False)
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/run-reset")
-def run_reset():
+def run_reset(request: Request):
     runner.start(reset_data=True)
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/stop")
-def stop():
+def stop(request: Request):
     runner.stop()
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/pause")
-def pause():
+def pause(request: Request):
     runner.pause()
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/resume")
-def resume():
+def resume(request: Request):
     runner.resume()
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/approve/{decision_id}")
-def approve(decision_id: str, reason: str = Form("")):
+def approve(request: Request, decision_id: str, reason: str = Form("")):
     runner.resolve_approval(decision_id, approved=True, reason=reason)
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/reject/{decision_id}")
-def reject(decision_id: str, reason: str = Form("")):
+def reject(request: Request, decision_id: str, reason: str = Form("")):
     runner.resolve_approval(decision_id, approved=False, reason=reason)
-    return RedirectResponse("/", status_code=303)
+    return _back(request)
 
 
 @app.post("/config")

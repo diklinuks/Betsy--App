@@ -1,0 +1,10 @@
+{% set tone = {"running":"good","paused":"warn","finished":"info","error":"bad","idle":""} %}
+<span class="bb-dot {{ state.status }}"></span>
+<span class="text-sm font-semibold" style="color:#fff">Betsy</span>
+<span class="text-faint text-sm">· Autonomous Procurement</span>
+<span class="bb-chip {{ tone.get(state.status,'') }}" style="text-transform:uppercase;letter-spacing:.04em">{{ state.status }}</span>
+<span class="text-sm text-slate-500" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw">{{ state.message }}</span>
+<span style="margin-left:auto" class="nums text-sm text-slate-400">Sim day {{ sim_day }} / 90</span>
+{% if pending %}
+<a href="/approvals" class="bb-chip warn" style="text-decoration:none">{{ pending }} awaiting you →</a>
+{% endif %}

@@ -1,27 +1,21 @@
-{% set dot = {"running":"run","paused":"pause","finished":"done","idle":"idle","error":"err"} %}
-{% set chip = {"running":"bg-emerald-100 text-emerald-800","paused":"bg-amber-100 text-amber-800","finished":"bg-blue-100 text-blue-800","idle":"bg-slate-100 text-slate-600","error":"bg-rose-100 text-rose-800"} %}
-{# Self-poll ONLY when there is no approval waiting, so typing a reject reason is
-   never wiped by a refresh. Stops polling once finished/idle too. #}
-{% if not pending and state.status in ['running', 'paused'] %}
+{% from "_charts.html" import area_chart, sparkline %}
+{# Self-poll while running/paused so the deck updates live. #}
+{% if state.status in ['running', 'paused'] %}
 <div hx-get="/fragment/live" hx-trigger="every 2s" hx-target="#live" hx-swap="innerHTML"></div>
 {% endif %}
 
-<div class="grid grid-cols-1 gap-6">
+<div style="display:flex;flex-direction:column;gap:18px">
 
-  <!-- status -->
-  <div class="bg-white rounded-xl border border-slate-200 p-5">
+  <!-- progress -->
+  <div class="bb-panel bb-panel-pad">
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="bb-dot {{ dot.get(state.status,'idle') }}"></span>
-        <span class="px-2.5 py-1 rounded-full text-xs font-semibold uppercase {{ chip.get(state.status,'bg-slate-100') }}">{{ state.status }}</span>
-        <span class="text-sm text-slate-600">{{ state.message }}</span>
-      </div>
-      <span class="text-sm font-medium text-slate-500 nums">Sim day {{ sim_day }} / 90</span>
+      <span class="text-sm text-slate-600">{{ state.message }}</span>
+      <span class="nums text-sm font-medium text-slate-500">Sim day {{ sim_day }} / 90</span>
     </div>
     <div class="bb-meter"><span style="width: {{ (sim_day / 90 * 100)|round(1) }}%"></span></div>
   </div>
 
-  <!-- KPI command deck -->
+  <!-- KPI deck -->
   {% if stats %}
   <div class="bb-deck">
     <div class="bb-tile is-accent">
@@ -71,52 +65,46 @@
   </div>
   {% endif %}
 
-  <!-- approval queue -->
-  <div>
-    <h2 class="text-lg font-semibold mb-3 flex items-center gap-2">
-      Approval queue
-      {% if pending %}<span class="px-2 py-0.5 rounded-full bg-amber-500 text-white text-xs nums">{{ pending|length }}</span>{% endif %}
-    </h2>
-    {% if not pending %}
-      <p class="text-slate-400 text-sm">No decisions waiting on you. Betsy escalates only over-cap or flagged POs.</p>
-    {% endif %}
-    {% for pa in pending %}
-    <div class="bg-white rounded-xl border border-amber-200 p-5 mb-3">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="font-semibold">{{ pa.product_id }} · {{ pa.proposal.quantity }} units from
-            {{ pa.proposal.supplier_id }} ({{ pa.proposal.supplier_name }})</p>
-          <p class="text-sm text-slate-500 nums">Total ${{ "%.2f"|format(pa.proposal.total) }} ·
-            confidence {{ pa.proposal.confidence }} · <span class="text-amber-700">{{ pa.reason_needed }}</span></p>
-          <p class="text-xs text-slate-600 mt-1 nums">
-            ${{ pa.proposal.unit_price }}/unit · {{ pa.proposal.lead_time }}-day lead · reliability {{ pa.proposal.reliability }}<br>
-            stock {{ pa.proposal.current_stock }} / reorder {{ pa.proposal.reorder_point }} ·
-            daily usage {{ pa.proposal.daily_usage }} · ~{{ pa.proposal.days_of_cover }} days of cover
-          </p>
-        </div>
-        <span class="text-xs text-slate-400 nums">sim day {{ pa.sim_day }}</span>
+  <!-- chart + leaderboard -->
+  <div class="bb-two">
+    <div class="bb-panel bb-panel-pad">
+      <div class="flex items-center justify-between" style="margin-bottom:10px">
+        <h3 class="font-semibold" style="color:#fff">Cumulative procurement spend</h3>
+        <span class="nums text-xs text-faint">to day {{ sim_day }}</span>
       </div>
-      <p class="text-sm text-slate-700 mt-2 italic">“{{ pa.proposal.reasoning }}”</p>
-      {% if pa.proposal.alternatives %}
-        <p class="text-xs text-slate-500 mt-1">Alternatives considered: {{ pa.proposal.alternatives|join(", ") }}</p>
-      {% endif %}
-      <div class="flex gap-2 mt-4">
-        <form method="post" action="/approve/{{ pa.decision_id }}" class="flex gap-2 flex-1">
-          <input name="reason" placeholder="reason (optional)" class="flex-1 text-sm px-3 py-1.5">
-          <button class="bb-btn bb-btn--accent">Approve</button>
-        </form>
-        <form method="post" action="/reject/{{ pa.decision_id }}" class="flex gap-2 flex-1">
-          <input name="reason" placeholder="reason (required — becomes a lesson)" required class="flex-1 text-sm px-3 py-1.5">
-          <button class="bb-btn bb-btn--danger">Reject</button>
-        </form>
+      {{ area_chart(spend_series) }}
+    </div>
+    <div class="bb-panel bb-panel-pad">
+      <div class="flex items-center justify-between" style="margin-bottom:12px">
+        <h3 class="font-semibold" style="color:#fff">Supplier reliability</h3>
+        <a href="/suppliers" class="text-xs" style="color:var(--accent)">all →</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        {% for r in leaders %}
+        <div class="flex items-center gap-3">
+          <span class="nums text-xs text-slate-500" style="width:34px">{{ r.s.supplier_id }}</span>
+          <div class="bb-bar" style="flex:1"><span class="{{ 'bad' if r.s.status != 'active' else '' }}" style="width: {{ [3, (r.s.current_score*100)]|max|round(0) }}%"></span></div>
+          <span class="nums text-xs text-slate-300" style="width:36px;text-align:right">{{ "%.2f"|format(r.s.current_score) }}</span>
+        </div>
+        {% endfor %}
       </div>
     </div>
-    {% endfor %}
   </div>
 
+  <!-- approvals callout -->
+  {% if pending %}
+  <a href="/approvals" class="bb-panel bb-panel-pad" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;border-color:rgba(251,191,36,.4)">
+    <div>
+      <p class="font-semibold text-amber-700">{{ pending|length }} decision{{ 's' if pending|length != 1 else '' }} awaiting your approval</p>
+      <p class="text-sm text-slate-500">Betsy paused on over-cap or flagged POs — review supplier choices and approve or reject.</p>
+    </div>
+    <span class="bb-btn bb-btn--warn">Open approvals →</span>
+  </a>
+  {% endif %}
+
   {% if state.status == "finished" %}
-  <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
-    <p class="text-blue-800 font-medium">Simulation complete.</p>
+  <div class="bb-panel bb-panel-pad" style="border-color:rgba(56,189,248,.4)">
+    <p class="font-medium text-blue-800">Simulation complete.</p>
     <a href="/report" class="text-blue-700 underline text-sm">View the success-criteria report →</a>
   </div>
   {% endif %}

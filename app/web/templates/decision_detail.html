@@ -13,6 +13,14 @@
 </div>
 <p class="text-slate-500 text-sm mb-6">Sim day {{ d.sim_day }} · authorised: {{ d.attribution }} · config v{{ d.config_version }} · {{ d.decision_id }}</p>
 
+{% if d.action == 'rejected' %}
+<div class="bg-rose-50 border border-rose-200 rounded-xl p-5 mb-6" style="border-left:3px solid #fb7185">
+  <h2 class="font-semibold mb-1 text-rose-700">Rejected by Jenny</h2>
+  <p class="text-slate-700 text-sm">{{ rej_reason or "No reason recorded." }}</p>
+  {% if rej_lesson %}<p class="text-xs text-slate-500 mt-2">Lesson banked: {{ rej_lesson }}</p>{% endif %}
+</div>
+{% endif %}
+
 <div class="grid grid-cols-3 gap-4 mb-6">
   <div class="bg-white rounded-xl border border-slate-200 p-4"><p class="text-xs text-slate-500">Chosen supplier</p><p class="text-lg font-semibold">{{ d.chosen_supplier or "—" }}</p></div>
   <div class="bg-white rounded-xl border border-slate-200 p-4"><p class="text-xs text-slate-500">Quantity</p><p class="text-lg font-semibold">{{ d.chosen_quantity or "—" }}</p></div>

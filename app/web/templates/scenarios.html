@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Betsy · Scenarios{% endblock %}
+{% block content %}
+
+{% set fired = scenarios|selectattr('fired')|list|length %}
+<div class="mb-5">
+  <h1 class="bb-h1">Injected scenarios</h1>
+  <p class="bb-sub">The {{ scenarios|length }} stress tests scripted into the world · {{ fired }} fired so far.</p>
+</div>
+
+<div class="bb-cards">
+  {% for sc in scenarios %}
+  <div class="bb-panel bb-panel-pad" style="{{ 'box-shadow:inset 0 0 0 1px rgba(52,211,153,.25)' if sc.fired else 'opacity:.7' }}">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="nums bb-chip">{{ sc.id }}</span>
+        <span class="text-xs text-faint">{{ sc.type.replace('_', ' ') }}</span>
+      </div>
+      {% if sc.fired %}
+      <span class="bb-chip good" style="gap:4px"><span style="display:inline-flex;width:12px;height:12px">{{ icon("check") }}</span> fired</span>
+      {% else %}
+      <span class="nums bb-chip">{{ ("day " ~ sc.day) if sc.day else "pending" }}</span>
+      {% endif %}
+    </div>
+    <p class="text-sm text-slate-700" style="margin-top:9px;line-height:1.45">{{ sc.desc }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

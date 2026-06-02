@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_charts.html" import sparkline %}
+{% block title %}Betsy · Suppliers{% endblock %}
+{% block content %}
+
+<div class="mb-5">
+  <h1 class="bb-h1">Supplier scoreboard</h1>
+  <p class="bb-sub">Reliability scores Betsy ranks on — recomputed after every delivery.</p>
+</div>
+
+<div class="bb-cards">
+  {% for r in rows %}
+  {% set s = r.s %}
+  {% set tone = '#34d399' if s.status == 'active' else '#fb7185' %}
+  <div class="bb-panel bb-panel-pad">
+    <div class="flex items-start justify-between">
+      <div style="min-width:0">
+        <div class="flex items-center gap-2">
+          <span class="nums font-semibold" style="color:#fff">{{ s.supplier_id }}</span>
+          <span class="text-sm text-slate-500" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</span>
+        </div>
+        <div class="flex items-center gap-2" style="margin-top:5px">
+          <span class="bb-chip">{{ s.price_tier }}</span>
+          <span class="nums text-xs text-faint">{{ s.base_lead_time_days }}d lead</span>
+        </div>
+      </div>
+      <span class="bb-chip {{ 'good' if s.status == 'active' else 'bad' }}">{{ s.status }}</span>
+    </div>
+    <div class="flex items-end justify-between" style="margin-top:14px">
+      <div class="nums" style="font-size:26px;font-weight:600;color:#fff">{{ "%.3f"|format(s.current_score) }}</div>
+      {{ sparkline(r.spark, color=tone) }}
+    </div>
+    <div class="bb-bar" style="margin-top:10px">
+      <span class="{{ 'bad' if s.status != 'active' else '' }}" style="width: {{ [3, (s.current_score*100)]|max|round(0) }}%"></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

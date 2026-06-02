@@ -1,0 +1,43 @@
+{# Server-rendered SVG charts. {% from "_charts.html" import area_chart, sparkline %} #}
+
+{% macro area_chart(points, w=760, h=190) %}
+{% if points and points|length > 0 %}
+  {% set maxv = (points|map(attribute='spend')|max) or 1 %}
+  {% set n = points|length %}
+  {% set ns = namespace(line='') %}
+  {% for p in points %}
+    {% set x = (loop.index0 / ((n - 1) if n > 1 else 1)) * w %}
+    {% set y = h - (p.spend / maxv) * (h - 10) - 5 %}
+    {% set ns.line = ns.line ~ (x | round(1)) ~ ',' ~ (y | round(1)) ~ ' ' %}
+  {% endfor %}
+  <div class="bb-chart">
+    <svg viewBox="0 0 {{ w }} {{ h }}" preserveAspectRatio="none" style="height:190px">
+      <defs>
+        <linearGradient id="spendgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#34d399" stop-opacity="0.33"/>
+          <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon fill="url(#spendgrad)" points="0,{{ h }} {{ ns.line }} {{ w }},{{ h }}"/>
+      <polyline fill="none" stroke="#34d399" stroke-width="2" stroke-linejoin="round" points="{{ ns.line }}"/>
+    </svg>
+  </div>
+{% else %}
+  <p class="text-slate-400 text-sm" style="padding:24px 0">No spend yet — start the simulation.</p>
+{% endif %}
+{% endmacro %}
+
+{% macro sparkline(values, w=88, h=26, color="#34d399") %}
+{% if values and values|length > 1 %}
+  {% set mn = values|min %}{% set mx = values|max %}{% set span = (mx - mn) or 1 %}
+  {% set n = values|length %}{% set ns = namespace(pts='') %}
+  {% for v in values %}
+    {% set x = (loop.index0 / (n - 1)) * w %}
+    {% set y = h - ((v - mn) / span) * (h - 4) - 2 %}
+    {% set ns.pts = ns.pts ~ (x | round(1)) ~ ',' ~ (y | round(1)) ~ ' ' %}
+  {% endfor %}
+  <svg width="{{ w }}" height="{{ h }}" style="overflow:visible">
+    <polyline fill="none" stroke="{{ color }}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" points="{{ ns.pts }}"/>
+  </svg>
+{% endif %}
+{% endmacro %}

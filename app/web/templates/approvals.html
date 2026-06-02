@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Approvals{% endblock %}
+{% block content %}
+
+<div class="mb-5">
+  <h1 class="bb-h1">Approvals</h1>
+  <p class="bb-sub">Betsy pauses on over-cap or flagged purchase orders. Review the supplier she chose against the alternatives, then approve or reject — your reason becomes a lesson she learns from.</p>
+</div>
+
+<div id="approvals-list">
+  {# Poll for new escalations only when none are open, so typing a reason is never wiped. #}
+  {% if not items and running %}
+  <div hx-get="/approvals" hx-trigger="every 3s" hx-select="#approvals-list" hx-target="#approvals-list" hx-swap="outerHTML"></div>
+  {% endif %}
+
+  {% if not items %}
+  <div class="bb-panel bb-panel-pad" style="text-align:center;color:var(--faint);padding:48px 20px">
+    <p style="color:var(--ink);font-weight:500">No decisions waiting on you.</p>
+    <p class="text-sm" style="margin-top:4px">When Betsy proposes an over-cap or flagged PO, it appears here for approval.</p>
+  </div>
+  {% endif %}
+
+  {% for it in items %}
+  {% set pa = it.pa %}
+  <div class="bb-panel bb-panel-pad" style="margin-bottom:16px;border-color:rgba(251,191,36,.4)">
+    <div class="flex items-start justify-between" style="gap:16px">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="font-semibold" style="color:#fff;font-size:16px">{{ pa.product_id }}</h2>
+          <span class="bb-chip warn">{{ pa.reason_needed }}</span>
+        </div>
+        <p class="text-sm text-slate-500 nums" style="margin-top:4px">
+          {{ pa.proposal.quantity }} units from <b style="color:var(--ink)">{{ pa.proposal.supplier_id }}</b>
+          ({{ pa.proposal.supplier_name }}) · total ${{ "%.2f"|format(pa.proposal.total) }} ·
+          confidence {{ pa.proposal.confidence }}
+        </p>
+        <p class="text-xs text-slate-600 nums" style="margin-top:4px">
+          ${{ pa.proposal.unit_price }}/unit · {{ pa.proposal.lead_time }}-day lead · reliability {{ pa.proposal.reliability }} ·
+          stock {{ pa.proposal.current_stock }}/{{ pa.proposal.reorder_point }} ·
+          ~{{ pa.proposal.days_of_cover }} days of cover
+        </p>
+      </div>
+      <span class="nums text-xs text-slate-400">sim day {{ pa.sim_day }}</span>
+    </div>
+
+    {% if it.candidates %}
+    <div style="margin-top:14px;border:1px solid var(--hairline);border-radius:10px;overflow:hidden">
+      <table class="w-full text-sm">
+        <thead><tr>
+          <th style="text-align:left;padding:7px 12px">Supplier</th>
+          <th style="text-align:left;padding:7px 12px">Reliability</th>
+          <th style="text-align:left;padding:7px 12px">$/unit</th>
+          <th style="text-align:left;padding:7px 12px">Lead</th>
+        </tr></thead>
+        <tbody class="nums">
+          {% for c in it.candidates %}
+          {% set chosen = c.supplier_id == pa.proposal.supplier_id %}
+          <tr style="border-top:1px solid var(--hairline){{ ';background:rgba(52,211,153,.06)' if chosen else '' }}">
+            <td style="padding:7px 12px;{{ 'color:var(--accent);font-weight:600' if chosen else 'color:var(--ink)' }}">
+              {{ c.supplier_id }}{% if chosen %} ● chosen{% endif %}
+            </td>
+            <td style="padding:7px 12px;color:var(--ink)">{{ "%.3f"|format(c.score) if c.score is not none else "—" }}</td>
+            <td style="padding:7px 12px;color:var(--ink)">${{ c.unit_price }}</td>
+            <td style="padding:7px 12px;color:var(--ink)">{{ c.lead }}d</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if pa.proposal.reasoning %}
+    <p class="text-sm text-slate-700" style="margin-top:12px;font-style:italic">“{{ pa.proposal.reasoning }}”</p>
+    {% endif %}
+    {% if pa.proposal.alternatives %}
+    <p class="text-xs text-slate-500" style="margin-top:4px">Alternatives considered: {{ pa.proposal.alternatives|join(", ") }}</p>
+    {% endif %}
+
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <form method="post" action="/approve/{{ pa.decision_id }}" style="display:flex;gap:8px;flex:1;min-width:240px">
+        <input name="reason" placeholder="reason (optional)" style="flex:1;font-size:14px;padding:8px 12px">
+        <button class="bb-btn bb-btn--accent">✓ Approve</button>
+      </form>
+      <form method="post" action="/reject/{{ pa.decision_id }}" style="display:flex;gap:8px;flex:1;min-width:240px">
+        <input name="reason" placeholder="reason (required — becomes a lesson)" required style="flex:1;font-size:14px;padding:8px 12px">
+        <button class="bb-btn bb-btn--danger">✗ Reject</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

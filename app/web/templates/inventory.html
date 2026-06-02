@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Inventory{% endblock %}
+{% block content %}
+
+<div class="mb-5">
+  <h1 class="bb-h1">Inventory</h1>
+  <p class="bb-sub">Stock vs reorder point and safety stock, with days of cover.</p>
+</div>
+
+<div class="bb-cards-2">
+  {% for r in rows %}
+  {% set p = r.p %}
+  {% set tone = '#fb7185' if r.state == 'stockout' else ('#fbbf24' if r.state == 'reorder' else '#34d399') %}
+  <div class="bb-panel" style="padding:14px 16px">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2" style="min-width:0">
+        <span class="nums font-semibold" style="color:#fff">{{ p.product_id }}</span>
+        <span class="text-sm text-slate-500" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span>
+        <span class="bb-chip">{{ p.abc_class }}</span>
+      </div>
+      <span class="bb-chip {{ 'bad' if r.state=='stockout' else ('warn' if r.state=='reorder' else 'good') }}">{{ r.state }}</span>
+    </div>
+
+    <div style="position:relative;height:12px;border-radius:999px;background:var(--hairline);overflow:hidden;margin-top:12px">
+      <div style="height:100%;border-radius:999px;background:{{ tone }};width: {{ [100, (p.current_stock / r.scale * 100)]|min|round(0) }}%"></div>
+      <span style="position:absolute;top:0;height:12px;width:2px;background:rgba(251,191,36,.8);left: {{ [100, (p.reorder_point / r.scale * 100)]|min|round(0) }}%" title="reorder point {{ p.reorder_point }}"></span>
+      <span style="position:absolute;top:0;height:12px;width:2px;background:rgba(251,113,133,.75);left: {{ [100, (p.safety_stock / r.scale * 100)]|min|round(0) }}%" title="safety stock {{ p.safety_stock }}"></span>
+    </div>
+
+    <div class="nums text-xs text-faint flex items-center justify-between" style="margin-top:8px">
+      <span class="text-slate-300">stock <b style="color:#fff">{{ p.current_stock }}</b></span>
+      <span>ROP {{ p.reorder_point }}</span>
+      <span>safety {{ p.safety_stock }}</span>
+      <span>{{ (r.days_cover ~ "d cover") if r.days_cover is not none else "—" }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

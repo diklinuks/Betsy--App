@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Lessons{% endblock %}
+{% block content %}
+
+<div class="mb-5">
+  <h1 class="bb-h1">Lessons learned</h1>
+  <p class="bb-sub">Reflections after poor outcomes and your rejections — recalled on similar future decisions.</p>
+</div>
+
+{% if not lessons %}
+<div class="bb-panel bb-panel-pad" style="text-align:center;color:var(--faint);padding:44px 20px">
+  No lessons yet — they appear after a late, defective, or short delivery, or when you reject a proposal.
+</div>
+{% endif %}
+
+<div class="bb-cards-2">
+  {% for l in lessons %}
+  {% set rej = l.kind == 'rejection' %}
+  <div class="bb-panel bb-panel-pad" style="border-left:2px solid {{ '#fb7185' if rej else '#34d399' }}">
+    <div class="flex items-center justify-between">
+      <span class="bb-chip {{ 'bad' if rej else 'good' }}">{{ l.kind }}</span>
+      <span class="nums text-xs text-faint">day {{ l.created_day }} · {{ l.product_id or '' }} {{ l.supplier_id or '' }}</span>
+    </div>
+    <p class="text-sm text-slate-700" style="margin-top:8px;line-height:1.5">{{ l.text }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

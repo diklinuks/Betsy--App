@@ -1,13 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Betsy · Dashboard{% endblock %}
+{% block title %}Betsy · Command Deck{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="text-2xl font-semibold">Simulation control</h1>
-    <p class="text-slate-500 text-sm">90-day procurement simulation. Betsy runs autonomously and pauses for your approval on high-value decisions.</p>
+
+<div class="mb-5">
+  <h1 class="bb-h1">Command Deck</h1>
+  <p class="bb-sub">Betsy's live autonomous procurement run — start it, watch every decision, and approve the high-value ones.</p>
+</div>
+
+<!-- prominent start / control hero -->
+<div class="bb-hero mb-5">
+  <div style="max-width:520px">
+    <div class="flex items-center gap-2" style="margin-bottom:6px">
+      <span class="bb-dot {{ state.status }}"></span>
+      <span class="text-sm font-semibold" style="color:#fff;text-transform:uppercase;letter-spacing:.04em">{{ state.status }}</span>
+    </div>
+    <p class="text-slate-500 text-sm">{{ state.message or "Ready when you are. Betsy runs the 90-day simulation autonomously and pauses only for high-value approvals." }}</p>
   </div>
-  <div class="flex flex-wrap gap-2">
-    <form method="post" action="/run"><button class="bb-btn bb-btn--accent">▶ Run</button></form>
+  <div class="flex flex-wrap gap-2 items-center">
+    <form method="post" action="/run"><button class="bb-btn bb-btn--accent bb-btn--lg">▶ Start simulation</button></form>
     <form method="post" action="/run-reset"><button class="bb-btn">↻ Reset &amp; run</button></form>
     <form method="post" action="/pause"><button class="bb-btn bb-btn--warn">⏸ Pause</button></form>
     <form method="post" action="/resume"><button class="bb-btn bb-btn--info">⏵ Resume</button></form>
@@ -15,7 +25,7 @@
   </div>
 </div>
 
-<!-- Loaded once; the fragment refreshes itself only when it is safe to (see live.html) -->
+<!-- live deck (status, KPIs, chart, leaderboard, approvals callout) -->
 <div id="live" hx-get="/fragment/live" hx-trigger="load" hx-swap="innerHTML">
   <p class="text-slate-400 text-sm">Loading…</p>
 </div>
