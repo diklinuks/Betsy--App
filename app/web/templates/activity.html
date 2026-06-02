@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Betsy · Activity{% endblock %}
+{% block content %}
+{% set sev = {"info":"sev-info","good":"sev-good","action":"sev-action","warn":"sev-warn","bad":"sev-bad"} %}
+{% set sevtext = {"info":"text-sky-700","good":"text-emerald-700","action":"text-emerald-700","warn":"text-amber-700","bad":"text-rose-700"} %}
+
+<div class="flex items-center justify-between mb-1">
+  <h1 class="text-2xl font-semibold">Activity timeline</h1>
+  {% if running %}
+  <span class="chip bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5">
+    <span class="feed-dot sev-good" style="margin-top:0"></span> live
+  </span>
+  {% endif %}
+</div>
+<p class="text-slate-500 text-sm mb-6">Every step Betsy takes, newest first. The full process — consumption, reorders, proposals, POs, deliveries, invoice checks, score updates, and lessons.</p>
+
+{# auto-refresh while the sim is running #}
+{% if running %}
+<div hx-get="/activity" hx-trigger="every 3s" hx-select="#feed" hx-target="#feed" hx-swap="outerHTML"></div>
+{% endif %}
+
+<div id="feed" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  {% if not events %}
+    <p class="px-4 py-10 text-center text-slate-400 text-sm">No events yet — start a run from the dashboard.</p>
+  {% endif %}
+  {% for e in events %}
+  <div class="feed-row flex items-start gap-3 px-4 py-2.5 {% if e.decision_id %}hover:bg-slate-50 cursor-pointer{% endif %}"
+       {% if e.decision_id %}onclick="window.location='/decision/{{ e.decision_id }}'"{% endif %}>
+    <span class="feed-dot {{ sev.get(e.severity,'sev-info') }}"></span>
+    <div class="min-w-0 flex-1">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-400 font-mono">D{{ e.sim_day }}</span>
+        <span class="font-medium {{ sevtext.get(e.severity,'text-sky-700') }}">{{ e.kind.replace('_',' ') }}</span>
+        {% if e.decision_id %}<span class="ml-auto text-slate-500 text-[11px]">open →</span>{% endif %}
+      </div>
+      <p class="text-sm text-slate-700 mt-0.5 leading-snug">{{ e.title }}</p>
+      {% if e.kind == 'proposal' and e.detail and e.detail.get('reasoning') %}
+        <p class="text-xs text-slate-500 italic mt-1 line-clamp-2">“{{ e.detail.get('reasoning') }}”</p>
+      {% elif e.kind == 'lesson' and e.detail and e.detail.get('lesson') %}
+        <p class="text-xs text-slate-500 mt-1">{{ e.detail.get('lesson') }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

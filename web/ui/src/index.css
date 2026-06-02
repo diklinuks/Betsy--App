@@ -1,0 +1,103 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    /* faint dot-grid texture over the dark canvas */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  /* tabular numerals everywhere numbers appear */
+  .nums {
+    font-variant-numeric: tabular-nums;
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-hairline bg-panel shadow-panel;
+  }
+  .panel-raised {
+    @apply rounded-xl border border-hairline bg-raised;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-hairline-strong
+           bg-raised px-3 py-1.5 text-sm font-medium text-ink transition
+           hover:border-accent/50 hover:text-white disabled:opacity-40 disabled:hover:border-hairline-strong;
+  }
+  .btn-accent {
+    @apply border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 hover:text-accent;
+  }
+  .nav-item {
+    @apply relative flex h-10 w-10 items-center justify-center rounded-lg text-muted
+           transition hover:bg-raised hover:text-ink;
+  }
+  .nav-item-active {
+    @apply bg-accent/10 text-accent;
+  }
+  .kpi-label {
+    @apply text-[11px] font-medium uppercase tracking-wider text-faint;
+  }
+}
+
+/* --- custom scrollbar --- */
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #243042;
+  border-radius: 6px;
+  border: 2px solid #0a0e14;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #34455a;
+}
+
+/* --- the replay scrubber (range input) --- */
+input[type="range"].scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #1e2733;
+  cursor: pointer;
+}
+input[type="range"].scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: #34d399;
+  border: 3px solid #0a0e14;
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.4), 0 0 14px -2px rgba(52, 211, 153, 0.8);
+}
+input[type="range"].scrubber::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: #34d399;
+  border: 3px solid #0a0e14;
+}

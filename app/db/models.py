@@ -248,6 +248,33 @@ class PendingApproval(Base):
 
 
 # --------------------------------------------------------------------------- #
+# Traceability — append-only event stream (one row per meaningful sim action)
+# --------------------------------------------------------------------------- #
+class Event(Base):
+    """Every meaningful thing Betsy does, captured so the process is visible.
+
+    Previously the per-day `world.events` list was discarded each tick; this table
+    persists it for the live Activity feed AND the static replay export.
+    `severity` drives colour in the UI; the *_id columns let the UI cross-link an
+    event to its decision / delivery / invoice / supplier / product.
+    """
+    __tablename__ = "events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    abs_day: Mapped[int] = mapped_column(Integer, index=True)
+    sim_day: Mapped[int] = mapped_column(Integer, index=True)
+    kind: Mapped[str] = mapped_column(String)        # reorder|proposal|po|delivery|invoice|...
+    severity: Mapped[str] = mapped_column(String, default="info")  # info|good|warn|bad|action
+    title: Mapped[str] = mapped_column(String)
+    detail: Mapped[dict] = mapped_column(JSONB, default=dict)
+    product_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    supplier_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    po_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    decision_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# --------------------------------------------------------------------------- #
 # Runtime — simulation state (one row, for the dashboard)
 # --------------------------------------------------------------------------- #
 class SimState(Base):

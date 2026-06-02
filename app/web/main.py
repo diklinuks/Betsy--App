@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app.db.config_repo import current_config, save_config
 from app.db.models import (
-    Decision, Delivery, Invoice, MemoryEmbedding, PendingApproval, Product,
+    Decision, Delivery, Event, Invoice, MemoryEmbedding, PendingApproval, Product,
     PurchaseOrder, SimState, Supplier,
 )
 from app.db.session import get_session
@@ -66,6 +66,19 @@ def live(request: Request):
                 "running": runner.is_running(), "sim_day": sd,
             }
         )
+
+
+@app.get("/activity", response_class=HTMLResponse)
+def activity(request: Request):
+    with get_session() as s:
+        st = _sim_state(s)
+        rows = s.execute(
+            select(Event).order_by(Event.id.desc()).limit(250)
+        ).scalars().all()
+        return templates.TemplateResponse(
+            request=request, name="activity.html",
+            context={"request": request, "events": rows, "state": st,
+                     "running": runner.is_running()})
 
 
 @app.get("/decisions", response_class=HTMLResponse)

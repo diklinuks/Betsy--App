@@ -1,0 +1,83 @@
+/* Betsy Control Room — dark theme for the live FastAPI/HTMX dashboard.
+   Loaded after the Tailwind CDN so it re-themes the existing utility classes to
+   the same palette as the static replay UI, without rewriting every template. */
+
+:root {
+  --canvas: #0a0e14;
+  --panel: #111722;
+  --raised: #161e2b;
+  --hairline: #1e2733;
+  --ink: #e6edf3;
+  --muted: #8b98a9;
+  --faint: #5a6677;
+  --accent: #34d399;
+}
+
+body {
+  background: var(--canvas) !important;
+  color: var(--ink) !important;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* numerals */
+table, .nums { font-variant-numeric: tabular-nums; }
+
+/* --- surfaces --- */
+.bg-white { background: var(--panel) !important; }
+.bg-slate-50 { background: var(--canvas) !important; }
+.bg-slate-100 { background: var(--raised) !important; }
+.bg-slate-900 { background: #0c1119 !important; }
+.bg-blue-50 { background: rgba(56, 189, 248, 0.08) !important; }
+
+/* --- text --- */
+.text-slate-900, .text-slate-800, .text-slate-700 { color: var(--ink) !important; }
+.text-slate-600, .text-slate-500 { color: var(--muted) !important; }
+.text-slate-400, .text-slate-300 { color: var(--faint) !important; }
+.text-white { color: #fff !important; }
+
+/* --- borders --- */
+.border-slate-200, .border-slate-100, .border-slate-300 { border-color: var(--hairline) !important; }
+.border-amber-200 { border-color: rgba(251, 191, 36, 0.4) !important; }
+.border-rose-200 { border-color: rgba(251, 113, 133, 0.4) !important; }
+.border-blue-200 { border-color: rgba(56, 189, 248, 0.4) !important; }
+.border-emerald-300 { border-color: rgba(52, 211, 153, 0.4) !important; }
+.border-rose-300 { border-color: rgba(251, 113, 133, 0.4) !important; }
+
+/* --- status chips: pastel-on-white -> tint-on-dark --- */
+.bg-emerald-100 { background: rgba(52, 211, 153, 0.14) !important; }
+.bg-amber-100 { background: rgba(251, 191, 36, 0.15) !important; }
+.bg-rose-100, .bg-rose-200 { background: rgba(251, 113, 133, 0.16) !important; }
+.bg-blue-100, .bg-sky-100 { background: rgba(56, 189, 248, 0.14) !important; }
+.bg-indigo-100 { background: rgba(129, 140, 248, 0.16) !important; }
+.text-emerald-800, .text-emerald-700 { color: #34d399 !important; }
+.text-amber-800, .text-amber-700 { color: #fbbf24 !important; }
+.text-rose-800, .text-rose-700, .text-rose-600 { color: #fb7185 !important; }
+.text-blue-800, .text-blue-700, .text-sky-700 { color: #38bdf8 !important; }
+.text-indigo-700, .text-indigo-600 { color: #818cf8 !important; }
+
+/* highlighted table rows */
+.bg-amber-50 { background: rgba(251, 191, 36, 0.06) !important; }
+.bg-rose-50 { background: rgba(251, 113, 133, 0.06) !important; }
+
+/* --- form fields --- */
+input, select, textarea {
+  background: var(--raised) !important;
+  color: var(--ink) !important;
+  border-color: var(--hairline) !important;
+}
+input::placeholder { color: var(--faint) !important; }
+table thead { background: var(--raised) !important; }
+tr:hover.hover\:bg-slate-50:hover, .hover\:bg-slate-50:hover { background: rgba(255, 255, 255, 0.03) !important; }
+
+/* keep the accent action buttons readable */
+.bg-emerald-600, .bg-emerald-700 { background: #10b981 !important; color: #04130d !important; }
+
+/* live activity feed */
+.feed-row { border-bottom: 1px solid rgba(30, 39, 51, 0.7); }
+.feed-dot { width: 8px; height: 8px; border-radius: 999px; flex: 0 0 auto; margin-top: 6px; }
+.sev-info { background: #38bdf8; }
+.sev-good { background: #34d399; }
+.sev-action { background: #34d399; }
+.sev-warn { background: #fbbf24; }
+.sev-bad { background: #fb7185; }
