@@ -25,7 +25,9 @@ interface ReplayState {
   selectDecision: (id: string | null) => void;
 }
 
-const BASE = import.meta.env.BASE_URL || "/";
+// Resolve run.json relative to the document so it works at the domain root AND
+// under a GitHub Pages project subpath (e.g. /Betsy-App/) without guessing the base.
+const RUN_URL = new URL("run.json", document.baseURI).href;
 
 export const useReplay = create<ReplayState>((set, get) => ({
   run: null,
@@ -39,7 +41,7 @@ export const useReplay = create<ReplayState>((set, get) => ({
 
   load: async () => {
     try {
-      const res = await fetch(`${BASE}run.json`, { cache: "no-cache" });
+      const res = await fetch(RUN_URL, { cache: "no-cache" });
       if (!res.ok) throw new Error(`run.json ${res.status}`);
       const run = (await res.json()) as RunBundle;
       set({ run, loading: false, cursorDay: run.meta.sim_days });
